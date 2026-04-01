@@ -1,22 +1,71 @@
 <?php
+session_start();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Index</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Special Scientists Management</title>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/landing.css">
+
 </head>
 <body>
 
-<h1>Special Scientists Management for C.U.T.</h1>
-<p>A website for special scientists management </p>
+<div class="landing-wrapper">
 
-<div>
-    <a href="enrollements/enrollements.php"><button>Enrollments</button></a>
-    <a href="recruitments/recruitments.php"><button>Recruitments</button></a>
-    <a href="admin/admin_dashboard.php"><button>Admin Dashboard</button></a>
-    <a href="login.php"><button>Login</button></a>
-    <a href="register.php"><button>Register</button></a>
+    <div class="top-brand">
+        Special Scientists <strong>C.U.T.</strong>
+    </div>
+
+    <div class="landing-hero">
+        <div class="landing-card">
+
+            <h1>Special Scientists Management</h1>
+
+            <p class="landing-text">
+                A simple web application for managing special scientists,
+                applications, and user access for the Cyprus University of Technology.
+            </p>
+
+            <div class="landing-actions">
+
+                <?php if (isset($_SESSION['user_id'])): ?>
+
+                    <a href="modules/dashboard.php" class = "secondary-btn">
+                        Dashboard
+                    </a>
+
+                    <a href="modules/list.php" class="secondary-btn">
+                        Applications
+                    </a>
+
+                    <a href="auth/logout.php" class="secondary-btn">
+                        Logout
+                    </a>
+
+                <?php else: ?>
+
+                    <a href="auth/login.php">
+                        <button type="button">Login</button>
+                    </a>
+
+                <?php endif; ?>
+
+            </div>
+
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <p class="welcome-box">
+                    Logged in as
+                    <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong>
+                    (<?php echo htmlspecialchars($_SESSION['role']); ?>)
+                </p>
+            <?php endif; ?>
+
+        </div>
+    </div>
 
 </div>
 

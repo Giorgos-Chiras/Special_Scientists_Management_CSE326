@@ -93,7 +93,6 @@ input:focus {
 }
 
 button {
-    width: 100%;
     border: none;
     border-radius: 6px;
     background-color: #1f7ae0;
@@ -104,6 +103,7 @@ button {
     cursor: pointer;
     transition: background-color 0.2s ease;
     margin-top: 8px;
+    min-width: 160px;
 }
 
 button:hover {

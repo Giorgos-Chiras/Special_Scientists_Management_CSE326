@@ -6,163 +6,138 @@
 
 body {
     font-family: Arial, Helvetica, sans-serif;
-    background-color: #f5f5f5;
-    color: #222;
+    background-color: #f6f7fb;
+    color: #1f2937;
     min-height: 100vh;
 }
 
-.page-wrapper {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+a {
+    text-decoration: none;
+    color: inherit;
 }
 
 .top-brand {
-    padding: 40px 60px 10px;
+    padding: 28px 40px 10px;
     font-size: 20px;
     font-weight: 400;
-    color: #222;
+    color: #111827;
 }
 
 .top-brand strong {
     font-weight: 700;
 }
 
-.auth-wrapper {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 30px 20px 60px;
+.page-shell {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
-.container {
-    width: 100%;
-    max-width: 560px;
+.page-card {
     background: #ffffff;
-    border: 1px solid #e3e3e3;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    padding: 50px 58px 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
 }
 
-h1 {
-    text-align: center;
-    font-size: 56px;
-    font-weight: 300;
+.page-title {
+    font-size: 34px;
+    font-weight: 700;
+    color: #111827;
     margin-bottom: 8px;
-    color: #111;
 }
 
-.subtitle {
-    text-align: center;
+.page-subtitle {
+    color: #6b7280;
     font-size: 15px;
-    color: #444;
-    margin-bottom: 42px;
 }
 
-form {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group {
-    margin-bottom: 28px;
-}
-
-label {
-    display: block;
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 150px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
     font-size: 15px;
-    color: #666;
-    margin-bottom: 10px;
-}
-
-input {
-    width: 100%;
-    border: none;
-    border-bottom: 1px solid #bdbdbd;
-    background: transparent;
-    padding: 10px 2px 12px;
-    font-size: 17px;
-    color: #111;
-    outline: none;
-}
-
-input:focus {
-    border-bottom: 1px solid #2d7ff9;
-}
-
-button {
-    border: none;
-    border-radius: 6px;
-    background-color: #1f7ae0;
-    color: #fff;
-    font-size: 17px;
     font-weight: 600;
-    padding: 14px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    margin-top: 8px;
-    min-width: 160px;
+    transition: 0.2s ease;
 }
 
-button:hover {
-    background-color: #1869c4;
+.btn-primary {
+    background-color: #2563eb;
+    color: #ffffff;
 }
 
-.error {
-    background: #fdeaea;
-    color: #b42318;
-    border: 1px solid #f3c7c7;
-    border-radius: 6px;
-    padding: 14px 16px;
-    margin-bottom: 24px;
-    font-size: 14px;
+.btn-primary:hover {
+    background-color: #1d4ed8;
 }
 
-.error ul {
-    padding-left: 18px;
+.btn-secondary {
+    background-color: #ffffff;
+    color: #2563eb;
+    border-color: #2563eb;
 }
 
-.success {
-    background: #ecfdf3;
-    color: #027a48;
-    border: 1px solid #b7ebc6;
-    border-radius: 6px;
-    padding: 14px 16px;
-    margin-bottom: 24px;
-    font-size: 14px;
-    text-align: center;
+.btn-secondary:hover {
+    background-color: #2563eb;
+    color: #ffffff;
 }
 
-.auth-link {
-    text-align: center;
-    margin-top: 28px;
-    font-size: 15px;
-    color: #444;
+.btn-danger {
+    background-color: #ffffff;
+    color: #dc2626;
+    border-color: #dc2626;
 }
 
-.auth-link a {
-    color: #1f7ae0;
-    text-decoration: none;
-    font-weight: 500;
+.btn-danger:hover {
+    background-color: #dc2626;
+    color: #ffffff;
 }
 
-.auth-link a:hover {
-    text-decoration: underline;
+.info-grid {
+    display: grid;
+    gap: 16px;
 }
 
-@media (max-width: 640px) {
+.info-box {
+    background: #f9fafb;
+    border: 1px solid #eceff3;
+    border-radius: 14px;
+    padding: 18px 20px;
+}
+
+.info-label {
+    display: block;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.info-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+@media (max-width: 768px) {
     .top-brand {
-        padding: 24px 20px 0;
-        font-size: 18px;
+        padding: 22px 20px 8px;
     }
 
-    .container {
-        padding: 35px 24px 30px;
+    .page-shell {
+        padding: 16px;
     }
 
-    h1 {
-        font-size: 40px;
+    .page-title {
+        font-size: 28px;
+    }
+
+    .btn {
+        min-width: 130px;
+        width: 100%;
     }
 }

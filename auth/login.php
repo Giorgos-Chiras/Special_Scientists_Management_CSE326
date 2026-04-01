@@ -31,20 +31,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
-<div class="page-wrapper">
+<div class="auth-page">
     <div class="top-brand">Special Scientists <strong>C.U.T.</strong></div>
 
     <div class="auth-wrapper">
-        <div class="container">
-            <h1>Sign in</h1>
-            <p class="subtitle">Login to continue</p>
+        <div class="auth-card">
+            <h1 class="auth-title">Sign in</h1>
+            <p class="auth-subtitle">Login to continue</p>
 
             <?php if (isset($_GET['registered'])): ?>
-                <p class="success">Login Successful</p>
+                <p class="success">Registration completed successfully. You can now sign in.</p>
             <?php endif; ?>
 
             <?php if ($error !== ''): ?>
@@ -71,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     >
                 </div>
 
-                <button type="submit">Sign in</button>
+                <button type="submit" class="btn btn-primary auth-submit">Sign in</button>
             </form>
 
             <p class="auth-link">

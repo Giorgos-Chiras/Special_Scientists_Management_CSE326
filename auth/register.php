@@ -71,17 +71,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
-<div class="page-wrapper">
+<div class="auth-page">
     <div class="top-brand">Special Scientists <strong>C.U.T.</strong></div>
 
     <div class="auth-wrapper">
-        <div class="container">
-            <h1>Sign up</h1>
-            <p class="subtitle">Create an account to continue</p>
+        <div class="auth-card">
+            <h1 class="auth-title">Sign up</h1>
+            <p class="auth-subtitle">Create an account to continue</p>
 
             <?php if (!empty($errors)): ?>
                 <div class="error">
@@ -132,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     >
                 </div>
 
-                <button type="submit">Sign up</button>
+                <button type="submit" class="btn btn-primary auth-submit">Sign up</button>
             </form>
 
             <p class="auth-link">

@@ -1,10 +1,13 @@
 <?php
 
+/**
+ * CHANGE THIS TO YOUR OWN DATABASE CREDENTIALS!!
+ */
 $host = 'localhost';
 $dbname = 'special_scientists_project';
 $username = 'root';
-$port = '3308';
 $password = '';
+$port = '3306';
 
 try {
     $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";

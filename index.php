@@ -48,10 +48,9 @@ session_start();
 
                 <?php else: ?>
 
-                    <a href="auth/login.php">
-                        <button type="button">Login</button>
+                 <a href="auth/login.php">
+                        <button type="button" class="btn btn-primary">Login</button>
                     </a>
-
                 <?php endif; ?>
 
             </div>

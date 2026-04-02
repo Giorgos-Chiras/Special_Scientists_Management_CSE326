@@ -1,0 +1,148 @@
+.list-layout {
+    padding-bottom: 40px;
+}
+
+.list-card {
+    padding: 32px;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.list-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.search-card {
+    background: #f9fafb;
+    border: 1px solid #eceff3;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 24px;
+}
+
+.search-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.search-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #4b5563;
+    font-weight: 600;
+}
+
+.search-group input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #ffffff;
+    font-size: 15px;
+    outline: none;
+    transition: 0.2s ease;
+}
+
+.search-group input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+}
+
+.results-meta {
+    margin-bottom: 14px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.table-card {
+    border: 1px solid #eceff3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: #f8fafc;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 16px 18px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 14px;
+}
+
+th {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    font-weight: 700;
+}
+
+tbody tr:hover {
+    background: #fafcff;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.status-pending {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.status-approved {
+    background: #ecfdf3;
+    color: #027a48;
+}
+
+.status-rejected {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.empty-state {
+    padding: 28px;
+    text-align: center;
+    color: #6b7280;
+}
+
+@media (max-width: 768px) {
+    .list-card {
+        padding: 22px;
+    }
+
+    .search-form {
+        grid-template-columns: 1fr;
+    }
+}

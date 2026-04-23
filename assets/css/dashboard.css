@@ -447,3 +447,84 @@ tbody tr:hover {
         font-size: 24px;
     }
 }
+
+.application-title-cell strong {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.table-subtext {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    border: 0.5px solid transparent;
+}
+.status-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-draft {
+    background: #f1f5f9;
+    color: #64748b;
+    border-color: #e2e8f0;
+}
+.status-draft::before { background: #94a3b8; }
+
+.status-submitted {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #dbeafe;
+}
+.status-submitted::before { background: #3b82f6; }
+
+.status-review {
+    background: #fff7ed;
+    color: #ea580c;
+    border-color: #fed7aa;
+}
+.status-review::before { background: #f97316; }
+
+.status-approved {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+}
+.status-approved::before { background: #22c55e; }
+
+.status-rejected {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.status-rejected::before { background: #ef4444; }
+
+.progress-track {
+    width: 160px;
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 0.5px solid #e2e8f0;
+}
+.progress-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+.progress-active   { background: #3b82f6; }
+.progress-approved { background: #22c55e; }
+.progress-rejected { background: #f87171; }

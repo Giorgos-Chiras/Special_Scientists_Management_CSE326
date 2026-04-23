@@ -270,3 +270,53 @@
         width: 100%;
     }
 }
+
+.recruitment-hub-card {
+    padding: 34px;
+}
+
+.recruitment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.recruitment-link-card {
+    display: block;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    transition: all 0.2s ease;
+}
+
+.recruitment-link-card:hover {
+    transform: translateY(-2px);
+    border-color: #bfdbfe;
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.10);
+}
+
+.recruitment-link-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 10px;
+}
+
+.recruitment-link-text {
+    color: #475569;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+@media (max-width: 900px) {
+    .recruitment-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .recruitment-hub-card {
+        padding: 24px;
+    }
+}

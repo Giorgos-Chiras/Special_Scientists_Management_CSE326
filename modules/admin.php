@@ -1,9 +1,20 @@
 <?php
 require_once '../includes/admin_guard.php';
 
-$currentPage = $_GET['page'] ?? 'users';
+$currentPage = $_GET['page'] ?? 'dashboard';
 
-$allowedPages = ['users', 'recruitment', 'system', 'reports'];
+$allowedPages = [
+        'dashboard',
+        'users',
+        'recruitment',
+        'faculties',
+        'departments',
+        'courses',
+        'periods',
+        'evaluator_assignments',
+        'system',
+        'reports'
+];
 
 if (!in_array($currentPage, $allowedPages, true)) {
     $currentPage = 'dashboard';

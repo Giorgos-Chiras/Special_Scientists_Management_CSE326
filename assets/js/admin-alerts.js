@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
             Swal.fire({
                 icon: type,
                 title: title,
-                text: text,
+                html: text,
                 confirmButtonColor: '#2563eb'
             });
         }
@@ -100,9 +100,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 Swal.fire({
                     icon: 'error',
                     title: 'Form Error',
-                    html: errors.map(function (err) {
-                        return '<div>' + err + '</div>';
-                    }).join(''),
+                    html: '<ul style="text-align:left; padding-left: 20px; margin: 0;">' +
+                        errors.map(function (err) {
+                            return '<li>' + err + '</li>';
+                        }).join('') +
+                        '</ul>',
                     confirmButtonColor: '#2563eb'
                 });
             }

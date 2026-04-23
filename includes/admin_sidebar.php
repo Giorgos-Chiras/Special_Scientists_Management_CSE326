@@ -14,6 +14,5 @@
     </nav>
 
     <div class="sidebar-bottom">
-        <a href="../auth/logout.php" class="btn btn-danger sidebar-logout">Logout</a>
-    </div>
+        <a href="../auth/logout.php" class="btn btn-danger sidebar-logout js-confirm-logout">Logout</a>    </div>
 </aside>

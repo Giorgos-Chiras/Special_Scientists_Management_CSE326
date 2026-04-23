@@ -1,0 +1,111 @@
+document.addEventListener('DOMContentLoaded', function () {
+    const flashDataElement = document.getElementById('flash-data');
+
+    if (flashDataElement) {
+        const type = flashDataElement.dataset.type || '';
+        const title = flashDataElement.dataset.title || '';
+        const text = flashDataElement.dataset.text || '';
+
+        if (type && title) {
+            Swal.fire({
+                icon: type,
+                title: title,
+                text: text,
+                confirmButtonColor: '#2563eb'
+            });
+        }
+    }
+
+    document.addEventListener('click', function (event) {
+        const logoutLink = event.target.closest('.js-confirm-logout');
+
+        if (logoutLink) {
+            event.preventDefault();
+
+            const href = logoutLink.getAttribute('href');
+
+            Swal.fire({
+                title: 'Log out?',
+                text: 'You will be signed out.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, log out',
+                cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    window.location.href = href;
+                }
+            });
+
+            return;
+        }
+
+        const deleteButton = event.target.closest('.js-delete-button');
+
+        if (deleteButton) {
+            event.preventDefault();
+
+            const form = deleteButton.closest('form');
+
+            if (!form) {
+                return;
+            }
+
+            Swal.fire({
+                title: 'Delete this user?',
+                text: 'This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete',
+                cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+
+            return;
+        }
+    });
+
+    document.querySelectorAll('.js-validate-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            const inputs = form.querySelectorAll('input, select, textarea');
+            let errors = [];
+
+            inputs.forEach(function (input) {
+                if (input.hasAttribute('required')) {
+                    if (!input.value.trim()) {
+                        const label = form.querySelector(`label[for="${input.id}"]`);
+                        const fieldName = label ? label.innerText : input.name;
+                        errors.push(fieldName + ' is required');
+                    }
+                }
+
+                if (input.type === 'email' && input.value) {
+                    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+                    if (!emailValid) {
+                        errors.push('Please enter a valid email');
+                    }
+                }
+            });
+
+            if (errors.length > 0) {
+                e.preventDefault();
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Form Error',
+                    html: errors.map(function (err) {
+                        return '<div>' + err + '</div>';
+                    }).join(''),
+                    confirmButtonColor: '#2563eb'
+                });
+            }
+        });
+    });
+});

@@ -7,7 +7,7 @@ $host = 'localhost';
 $dbname = 'special_scientists_project';
 $username = 'root';
 $password = '';
-$port = '3306';
+$port = '3308';
 
 try {
     $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";

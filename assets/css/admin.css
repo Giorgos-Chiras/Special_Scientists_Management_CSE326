@@ -1,0 +1,153 @@
+.admin-shell {
+    min-height: 100vh;
+    display: flex;
+}
+
+.sidebar {
+    width: 280px;
+    background: rgba(255, 255, 255, 0.92);
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 8px 0 30px rgba(15, 23, 42, 0.05);
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+}
+
+.sidebar-top {
+    margin-bottom: 24px;
+}
+
+.sidebar-brand {
+    font-size: 24px;
+    font-weight: 500;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.sidebar-brand span {
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.sidebar-brand strong {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sidebar-text {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.sidebar-link {
+    display: block;
+    padding: 14px 16px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #334155;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.sidebar-link:hover {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #dbeafe;
+}
+
+.sidebar-link.active {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+}
+
+.sidebar-bottom {
+    margin-top: 24px;
+}
+
+.sidebar-logout {
+    width: 100%;
+}
+
+.admin-content {
+    flex: 1;
+    padding: 32px;
+}
+
+.placeholder-card {
+    padding: 34px;
+}
+
+.placeholder-header {
+    margin-bottom: 24px;
+}
+
+.placeholder-box {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.placeholder-box h3 {
+    font-size: 20px;
+    color: #0f172a;
+    margin-bottom: 10px;
+}
+
+.placeholder-box p {
+    color: #475569;
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+@media (max-width: 992px) {
+    .admin-shell {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .sidebar-link {
+        flex: 1 1 220px;
+    }
+
+    .admin-content {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 640px) {
+    .sidebar {
+        padding: 20px 16px;
+    }
+
+    .admin-content {
+        padding: 16px;
+    }
+
+    .placeholder-card,
+    .dashboard-card {
+        padding: 22px;
+    }
+}

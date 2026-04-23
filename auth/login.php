@@ -19,7 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
 
-        header('Location: ../modules/dashboard.php');
+        if($_SESSION['role'] == 'admin'){
+            header('Location: ../modules/admin.php');
+
+        }
+        else {
+            header('Location: ../modules/dashboard.php');
+        }
+
         exit;
     } else {
         $error = 'Wrong email or password';

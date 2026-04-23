@@ -1,3 +1,4 @@
+
 .list-layout {
     padding-bottom: 40px;
 }
@@ -22,11 +23,12 @@
 }
 
 .search-card {
-    background: #f9fafb;
-    border: 1px solid #eceff3;
-    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
     padding: 18px;
     margin-bottom: 24px;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.05);
 }
 
 .search-form {
@@ -40,19 +42,20 @@
     display: block;
     margin-bottom: 8px;
     font-size: 14px;
-    color: #4b5563;
+    color: #475569;
     font-weight: 600;
 }
 
 .search-group input {
     width: 100%;
     padding: 13px 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
     background: #ffffff;
     font-size: 15px;
     outline: none;
-    transition: 0.2s ease;
+    transition: all 0.2s ease;
+    color: #0f172a;
 }
 
 .search-group input:focus {
@@ -62,15 +65,17 @@
 
 .results-meta {
     margin-bottom: 14px;
-    color: #6b7280;
+    color: #64748b;
     font-size: 14px;
+    font-weight: 500;
 }
 
 .table-card {
-    border: 1px solid #eceff3;
-    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
     overflow: hidden;
     background: #ffffff;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
 }
 
 .table-wrapper {
@@ -83,7 +88,7 @@ table {
 }
 
 thead {
-    background: #f8fafc;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 th,
@@ -98,12 +103,16 @@ th {
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #6b7280;
+    color: #64748b;
     font-weight: 700;
 }
 
+td {
+    color: #0f172a;
+}
+
 tbody tr:hover {
-    background: #fafcff;
+    background: #f8fbff;
 }
 
 .status-pill {
@@ -114,27 +123,32 @@ tbody tr:hover {
     font-size: 12px;
     font-weight: 700;
     text-transform: capitalize;
+    border: 1px solid transparent;
 }
 
 .status-pending {
     background: #fff7ed;
     color: #c2410c;
+    border-color: #fed7aa;
 }
 
 .status-approved {
     background: #ecfdf3;
     color: #027a48;
+    border-color: #a7f3d0;
 }
 
 .status-rejected {
     background: #fef2f2;
     color: #b91c1c;
+    border-color: #fecaca;
 }
 
 .empty-state {
     padding: 28px;
     text-align: center;
-    color: #6b7280;
+    color: #64748b;
+    font-size: 15px;
 }
 
 @media (max-width: 768px) {

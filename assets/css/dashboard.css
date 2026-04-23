@@ -41,10 +41,11 @@
 }
 
 .dashboard-hero {
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 30px;
     background: linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%);
     border: 1px solid #dbeafe;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .dashboard-hero-content {
@@ -65,12 +66,14 @@
 
 .dashboard-hero h2 {
     font-size: 28px;
-    color: #111827;
+    color: #0f172a;
     margin-bottom: 10px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
 }
 
 .dashboard-hero p {
-    color: #4b5563;
+    color: #475569;
     line-height: 1.7;
     font-size: 15px;
 }
@@ -82,24 +85,25 @@
 }
 
 .dashboard-info-card {
-    background: #ffffff;
-    border: 1px solid #e8edf4;
-    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
     padding: 22px;
-    box-shadow: 0 6px 18px rgba(17, 24, 39, 0.04);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 
 .dashboard-note {
-    background: #f9fafb;
-    border: 1px solid #eceff3;
-    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
     padding: 18px 20px;
-    color: #4b5563;
+    color: #475569;
     line-height: 1.6;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
 }
 
 .dashboard-note strong {
-    color: #111827;
+    color: #0f172a;
 }
 
 @media (max-width: 900px) {

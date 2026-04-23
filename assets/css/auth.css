@@ -15,24 +15,26 @@
 .auth-card {
     width: 100%;
     max-width: 560px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
     padding: 42px 40px;
+    backdrop-filter: blur(10px);
 }
 
 .auth-title {
     text-align: center;
     font-size: 42px;
     font-weight: 700;
-    color: #111827;
+    color: #0f172a;
     margin-bottom: 10px;
+    letter-spacing: -0.02em;
 }
 
 .auth-subtitle {
     text-align: center;
-    color: #6b7280;
+    color: #64748b;
     font-size: 15px;
     margin-bottom: 32px;
 }
@@ -45,20 +47,20 @@
     display: block;
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color: #334155;
     margin-bottom: 8px;
 }
 
 .form-group input {
     width: 100%;
     padding: 14px 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
     font-size: 15px;
-    color: #111827;
+    color: #0f172a;
     background: #ffffff;
     outline: none;
-    transition: 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .form-group input:focus {
@@ -75,7 +77,7 @@
     background: #fef2f2;
     color: #b91c1c;
     border: 1px solid #fecaca;
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 14px 16px;
     margin-bottom: 22px;
     font-size: 14px;
@@ -89,7 +91,7 @@
     background: #ecfdf3;
     color: #027a48;
     border: 1px solid #b7ebc6;
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 14px 16px;
     margin-bottom: 22px;
     font-size: 14px;
@@ -100,7 +102,7 @@
     margin-top: 24px;
     text-align: center;
     font-size: 15px;
-    color: #6b7280;
+    color: #64748b;
 }
 
 .auth-link a {

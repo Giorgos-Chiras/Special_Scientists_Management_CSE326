@@ -29,5 +29,10 @@
             <div class="recruitment-link-title">Evaluator Assignments</div>
             <p class="recruitment-link-text">Assign evaluators to candidate applications.</p>
         </a>
+
+        <a href="admin.php?page=applications" class="recruitment-link-card">
+            <div class="recruitment-link-title">Applications</div>
+            <p class="recruitment-link-text">View and manage applications</p>
+        </a>
     </div>
 </section>

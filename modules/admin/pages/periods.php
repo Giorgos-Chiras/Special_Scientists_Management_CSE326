@@ -6,67 +6,77 @@ $action = $_GET['action'] ?? 'list';
 $editPeriod = null;
 $search = trim($_GET['search'] ?? '');
 
+// ── Helper: check for date-range overlap, optionally excluding a given ID ──
+function periodOverlaps(PDO $pdo, string $startDate, string $endDate, int $excludeId = 0): bool
+{
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) FROM recruitment_periods
+        WHERE id != :exclude_id
+          AND :end_date   >= start_date
+          AND :start_date <= end_date
+    ");
+    $stmt->execute([
+            ':exclude_id' => $excludeId,
+            ':start_date' => $startDate,
+            ':end_date'   => $endDate,
+    ]);
+    return (int) $stmt->fetchColumn() > 0;
+}
+
+// ── CREATE ────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_period'])) {
-    $title = trim($_POST['title'] ?? '');
+    $title     = trim($_POST['title'] ?? '');
     $startDate = $_POST['start_date'] ?? '';
-    $endDate = $_POST['end_date'] ?? '';
-    $isActive = isset($_POST['is_active']) ? 1 : 0;
+    $endDate   = $_POST['end_date']   ?? '';
 
-    if ($title === '') {
-        $errors[] = 'Period title is required.';
-    }
-
-    if ($startDate === '') {
-        $errors[] = 'Start date is required.';
-    }
-
-    if ($endDate === '') {
-        $errors[] = 'End date is required.';
-    }
+    if ($title === '')     $errors[] = 'Period title is required.';
+    if ($startDate === '') $errors[] = 'Start date is required.';
+    if ($endDate === '')   $errors[] = 'End date is required.';
 
     if ($startDate !== '' && $endDate !== '' && $endDate < $startDate) {
         $errors[] = 'End date cannot be before start date.';
     }
 
-    if (empty($errors)) {
-        if ($isActive === 1) {
-            $pdo->exec("UPDATE recruitment_periods SET is_active = 0");
-        }
+    if (empty($errors) && periodOverlaps($pdo, $startDate, $endDate)) {
+        $errors[] = 'This period overlaps with an existing recruitment period. Periods must not overlap.';
+    }
 
+    if (empty($errors)) {
         $stmt = $pdo->prepare("
-            INSERT INTO recruitment_periods (title, start_date, end_date, is_active)
-            VALUES (:title, :start_date, :end_date, :is_active)
+            INSERT INTO recruitment_periods (title, start_date, end_date)
+            VALUES (:title, :start_date, :end_date)
         ");
         $stmt->execute([
-                ':title' => $title,
+                ':title'      => $title,
                 ':start_date' => $startDate,
-                ':end_date' => $endDate,
-                ':is_active' => $isActive
+                ':end_date'   => $endDate,
         ]);
 
         $_SESSION['flash'] = [
-                'type' => 'success',
+                'type'  => 'success',
                 'title' => 'Period created',
-                'text' => 'The recruitment period was created successfully.'
+                'text'  => 'The recruitment period was created successfully.',
         ];
 
         header('Location: admin.php?page=periods');
         exit;
     }
+
+    $action = 'create';
 }
 
 if ($action === 'edit' && isset($_GET['id'])) {
     $id = (int) $_GET['id'];
 
-    $stmt = $pdo->prepare("SELECT id, title, start_date, end_date, is_active FROM recruitment_periods WHERE id = :id LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, title, start_date, end_date FROM recruitment_periods WHERE id = :id LIMIT 1");
     $stmt->execute([':id' => $id]);
     $editPeriod = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$editPeriod) {
         $_SESSION['flash'] = [
-                'type' => 'error',
+                'type'  => 'error',
                 'title' => 'Period not found',
-                'text' => 'The selected period could not be found.'
+                'text'  => 'The selected period could not be found.',
         ];
 
         header('Location: admin.php?page=periods');
@@ -75,53 +85,42 @@ if ($action === 'edit' && isset($_GET['id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_period'])) {
-    $id = (int) ($_POST['id'] ?? 0);
-    $title = trim($_POST['title'] ?? '');
+    $id        = (int) ($_POST['id'] ?? 0);
+    $title     = trim($_POST['title'] ?? '');
     $startDate = $_POST['start_date'] ?? '';
-    $endDate = $_POST['end_date'] ?? '';
-    $isActive = isset($_POST['is_active']) ? 1 : 0;
+    $endDate   = $_POST['end_date']   ?? '';
 
-    if ($title === '') {
-        $errors[] = 'Period title is required.';
-    }
-
-    if ($startDate === '') {
-        $errors[] = 'Start date is required.';
-    }
-
-    if ($endDate === '') {
-        $errors[] = 'End date is required.';
-    }
+    if ($title === '')     $errors[] = 'Period title is required.';
+    if ($startDate === '') $errors[] = 'Start date is required.';
+    if ($endDate === '')   $errors[] = 'End date is required.';
 
     if ($startDate !== '' && $endDate !== '' && $endDate < $startDate) {
         $errors[] = 'End date cannot be before start date.';
     }
 
-    if (empty($errors)) {
-        if ($isActive === 1) {
-            $pdo->exec("UPDATE recruitment_periods SET is_active = 0");
-        }
+    if (empty($errors) && periodOverlaps($pdo, $startDate, $endDate, $id)) {
+        $errors[] = 'This period overlaps with an existing recruitment period. Periods must not overlap.';
+    }
 
+    if (empty($errors)) {
         $stmt = $pdo->prepare("
             UPDATE recruitment_periods
-            SET title = :title,
+            SET title      = :title,
                 start_date = :start_date,
-                end_date = :end_date,
-                is_active = :is_active
+                end_date   = :end_date
             WHERE id = :id
         ");
         $stmt->execute([
-                ':title' => $title,
+                ':title'      => $title,
                 ':start_date' => $startDate,
-                ':end_date' => $endDate,
-                ':is_active' => $isActive,
-                ':id' => $id
+                ':end_date'   => $endDate,
+                ':id'         => $id,
         ]);
 
         $_SESSION['flash'] = [
-                'type' => 'success',
+                'type'  => 'success',
                 'title' => 'Period updated',
-                'text' => 'The recruitment period was updated successfully.'
+                'text'  => 'The recruitment period was updated successfully.',
         ];
 
         header('Location: admin.php?page=periods');
@@ -130,11 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_period'])) {
 
     $action = 'edit';
     $editPeriod = [
-            'id' => $id,
-            'title' => $title,
+            'id'         => $id,
+            'title'      => $title,
             'start_date' => $startDate,
-            'end_date' => $endDate,
-            'is_active' => $isActive
+            'end_date'   => $endDate,
     ];
 }
 
@@ -146,17 +144,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_period'])) {
         $stmt->execute([':id' => $id]);
 
         $_SESSION['flash'] = [
-                'type' => 'success',
+                'type'  => 'success',
                 'title' => 'Period deleted',
-                'text' => 'The recruitment period was deleted successfully.'
+                'text'  => 'The recruitment period was deleted successfully.',
         ];
-
-        header('Location: admin.php?page=periods');
-        exit;
     }
+
+    header('Location: admin.php?page=periods');
+    exit;
 }
 
-$sql = "SELECT id, title, start_date, end_date, is_active FROM recruitment_periods";
+$sql    = "SELECT id, title, start_date, end_date FROM recruitment_periods";
 $params = [];
 
 if ($search !== '') {
@@ -169,13 +167,15 @@ $sql .= " ORDER BY id DESC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$today = date('Y-m-d');
 ?>
 
 <section class="page-card list-card">
     <div class="list-header">
         <div>
             <h1 class="page-title">Recruitment Periods</h1>
-            <p class="page-subtitle">Create, edit, and manage recruitment periods.</p>
+            <p class="page-subtitle">Create, edit, and manage recruitment periods. A period is automatically active when today's date falls within its range.</p>
         </div>
 
         <div class="list-actions">
@@ -186,44 +186,58 @@ $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <?php if (!empty($errors)): ?>
-        <div class="error">
-            <ul>
-                <?php foreach ($errors as $error): ?>
-                    <li><?= htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
+        <div
+                id="flash-data"
+                data-type="error"
+                data-title="Please fix the following"
+                data-text="<?= htmlspecialchars(implode('<br>', $errors)); ?>"
+                style="display:none"
+        ></div>
     <?php endif; ?>
 
     <?php if ($action === 'create' || ($action === 'edit' && $editPeriod)): ?>
         <section class="search-card">
-            <form method="POST" action="admin.php?page=periods<?= $action === 'edit' ? '&action=edit&id=' . (int) $editPeriod['id'] : '&action=create' ?>" class="admin-form js-validate-form" novalidate>
+            <form
+                    method="POST"
+                    action="admin.php?page=periods<?= $action === 'edit' ? '&action=edit&id=' . (int) $editPeriod['id'] : '&action=create'; ?>"
+                    class="admin-form js-validate-form"
+                    novalidate
+            >
                 <?php if ($action === 'edit'): ?>
                     <input type="hidden" name="id" value="<?= (int) $editPeriod['id']; ?>">
                 <?php endif; ?>
 
                 <div class="form-group">
                     <label for="title">Period Title</label>
-                    <input type="text" id="title" name="title" value="<?= htmlspecialchars($action === 'edit' ? ($editPeriod['title'] ?? '') : ($_POST['title'] ?? '')); ?>" required>
+                    <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            value="<?= htmlspecialchars($action === 'edit' ? ($editPeriod['title'] ?? '') : ($_POST['title'] ?? '')); ?>"
+                            required
+                    >
                 </div>
 
                 <div class="form-group">
                     <label for="start_date">Start Date</label>
-                    <input type="date" id="start_date" name="start_date" value="<?= htmlspecialchars($action === 'edit' ? ($editPeriod['start_date'] ?? '') : ($_POST['start_date'] ?? '')); ?>" required>
+                    <input
+                            type="date"
+                            id="start_date"
+                            name="start_date"
+                            value="<?= htmlspecialchars($action === 'edit' ? ($editPeriod['start_date'] ?? '') : ($_POST['start_date'] ?? '')); ?>"
+                            required
+                    >
                 </div>
 
                 <div class="form-group">
                     <label for="end_date">End Date</label>
-                    <input type="date" id="end_date" name="end_date" value="<?= htmlspecialchars($action === 'edit' ? ($editPeriod['end_date'] ?? '') : ($_POST['end_date'] ?? '')); ?>" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="is_active">Active Period</label>
-                    <select id="is_active" name="is_active" class="admin-select">
-                        <?php $activeValue = $action === 'edit' ? (string) ($editPeriod['is_active'] ?? '0') : (isset($_POST['is_active']) ? '1' : '0'); ?>
-                        <option value="0" <?= $activeValue === '0' ? 'selected' : ''; ?>>No</option>
-                        <option value="1" <?= $activeValue === '1' ? 'selected' : ''; ?>>Yes</option>
-                    </select>
+                    <input
+                            type="date"
+                            id="end_date"
+                            name="end_date"
+                            value="<?= htmlspecialchars($action === 'edit' ? ($editPeriod['end_date'] ?? '') : ($_POST['end_date'] ?? '')); ?>"
+                            required
+                    >
                 </div>
 
                 <div class="form-actions">
@@ -234,6 +248,7 @@ $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </form>
         </section>
+
     <?php else: ?>
         <div class="search-card">
             <form method="GET" action="admin.php" class="search-form">
@@ -241,7 +256,13 @@ $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div class="search-group">
                     <label for="search">Search periods</label>
-                    <input type="text" id="search" name="search" placeholder="Search by period title" value="<?= htmlspecialchars($search); ?>">
+                    <input
+                            type="text"
+                            id="search"
+                            name="search"
+                            placeholder="Search by period title"
+                            value="<?= htmlspecialchars($search); ?>"
+                    >
                 </div>
 
                 <div class="list-actions">
@@ -275,15 +296,16 @@ $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </tr>
                     <?php else: ?>
                         <?php foreach ($periods as $period): ?>
+                            <?php $isActive = ($today >= $period['start_date'] && $today <= $period['end_date']); ?>
                             <tr>
                                 <td><?= (int) $period['id']; ?></td>
                                 <td><?= htmlspecialchars($period['title']); ?></td>
                                 <td><?= htmlspecialchars($period['start_date']); ?></td>
                                 <td><?= htmlspecialchars($period['end_date']); ?></td>
                                 <td>
-                                    <span class="status-pill <?= (int) $period['is_active'] === 1 ? 'status-approved' : 'status-pending'; ?>">
-                                        <?= (int) $period['is_active'] === 1 ? 'active' : 'inactive'; ?>
-                                    </span>
+                                        <span class="status-pill <?= $isActive ? 'status-approved' : 'status-pending'; ?>">
+                                            <?= $isActive ? 'Active' : 'Inactive'; ?>
+                                        </span>
                                 </td>
                                 <td>
                                     <div class="table-actions">

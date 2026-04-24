@@ -15,8 +15,6 @@ function protectedIsActive($file, $currentProtectedPage) {
     <nav class="sidebar-nav">
         <a href="list.php" class="<?= protectedIsActive('list.php', $currentProtectedPage); ?>">Applications</a>
         <a href="dashboard.php" class="<?= protectedIsActive('dashboard.php', $currentProtectedPage); ?>">Account Settings</a>
-    </nav>
 
-    <div class="sidebar-bottom">
-        <a href="../auth/logout.php" class="btn btn-danger sidebar-logout js-confirm-logout">Logout</a>    </div>
+        <a href="../auth/logout.php" class="btn btn-danger sidebar-logout js-confirm-logout">Logout</a>
 </aside>

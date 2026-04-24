@@ -1,4 +1,5 @@
-USE special_scientists_project;
+USE
+special_scientists_project;
 
 -- USERS
 
@@ -67,3 +68,10 @@ VALUES (1, 5),
        (4, 6),
        (6, 5),
        (9, 6);
+
+INSERT INTO system_settings (setting_key, setting_value)
+VALUES ('system_name', 'Special Scientists C.U.T.'),
+       ('contact_email', 'support@test.com'),
+       ('applications_open', '1'),
+       ('maintenance_mode', '0'),
+       ('footer_text', 'Special Scientists Recruitment System');

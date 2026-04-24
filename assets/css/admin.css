@@ -320,3 +320,91 @@
         padding: 24px;
     }
 }
+
+.applications-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+}
+
+.application-admin-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.application-admin-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.application-admin-id {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 6px;
+}
+
+.application-admin-head h3 {
+    font-size: 20px;
+    color: #0f172a;
+    margin: 0;
+}
+
+.application-admin-meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.application-admin-meta div {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.application-admin-meta span {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.application-admin-meta strong {
+    display: block;
+    color: #0f172a;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.application-admin-meta small {
+    color: #64748b;
+    font-size: 12px;
+}
+
+
+
+.application-admin-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+
+
+@media (max-width: 1100px) {
+    .application-admin-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+

@@ -42,16 +42,26 @@ CREATE TABLE recruitment_periods (
 );
 
 CREATE TABLE applications (
-                              id            INT AUTO_INCREMENT PRIMARY KEY,
-                              user_id       INT NOT NULL,
-                              course_id     INT NOT NULL,
-                              period_id     INT NOT NULL,
-                              title         VARCHAR(150) NOT NULL,
-                              status        ENUM('draft', 'submitted', 'under_review', 'approved', 'rejected') NOT NULL DEFAULT 'draft',
-                              created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                              FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-                              FOREIGN KEY (period_id) REFERENCES recruitment_periods(id) ON DELETE CASCADE
+    id                  INT AUTO_INCREMENT PRIMARY KEY,
+    user_id             INT NOT NULL,
+    course_id           INT NOT NULL,
+    period_id           INT NOT NULL,
+
+    title               VARCHAR(150) NOT NULL,
+    status              ENUM('draft', 'submitted', 'under_review', 'approved', 'rejected') NOT NULL DEFAULT 'draft',
+
+    cover_letter        TEXT NULL,
+    qualifications      TEXT NULL,
+
+    cv_file_path        VARCHAR(255) NULL,
+    cv_original_name    VARCHAR(255) NULL,
+
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (period_id) REFERENCES recruitment_periods(id) ON DELETE CASCADE
 );
 
 CREATE TABLE application_evaluators (
@@ -61,4 +71,10 @@ CREATE TABLE application_evaluators (
                                         assigned_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                         FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
                                         FOREIGN KEY (evaluator_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE system_settings (
+                                 id INT AUTO_INCREMENT PRIMARY KEY,
+                                 setting_key VARCHAR(100) NOT NULL UNIQUE,
+                                 setting_value TEXT NULL
 );

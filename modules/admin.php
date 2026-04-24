@@ -1,10 +1,9 @@
 <?php
 require_once '../includes/admin_guard.php';
 
-$currentPage = $_GET['page'] ?? 'dashboard';
+$currentPage = $_GET['page'] ?? 'users';
 
 $allowedPages = [
-        'dashboard',
         'users',
         'recruitment',
         'faculties',
@@ -12,15 +11,18 @@ $allowedPages = [
         'courses',
         'periods',
         'evaluator_assignments',
+        'applications',
+        'application_view',
         'system',
         'reports'
 ];
 
 if (!in_array($currentPage, $allowedPages, true)) {
-    $currentPage = 'dashboard';
+    $currentPage = 'users';
 }
 
-function isActive($page, $currentPage) {
+function isActive($page, $currentPage)
+{
     return $page === $currentPage ? 'sidebar-link active' : 'sidebar-link';
 }
 

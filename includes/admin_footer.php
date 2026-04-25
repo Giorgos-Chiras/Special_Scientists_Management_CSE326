@@ -10,5 +10,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="../assets/js/admin-alerts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="../utils/chart_utils.js"></script>
 </body>
 </html>

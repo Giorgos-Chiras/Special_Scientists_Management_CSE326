@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
 
                             <div class="account-field">
                                 <label for="email" class="account-label">Email</label>
-                                <input type="email" id="email" name="email" class="account-input" value="<?= htmlspecialchars($currentEmail); ?>" required>
+                                <input type="email" id="email" name="email" class="account-input" value="<?= htmlspecialchars($currentEmail); ?>" required readonly>
                             </div>
                         </div>
 

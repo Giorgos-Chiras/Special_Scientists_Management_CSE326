@@ -1,61 +1,52 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../utils/status_utils.php';
 
-$errors = [];
-$action = $_GET['action'] ?? 'list';
+$errors          = [];
+$action          = $_GET['action'] ?? 'list';
 $editApplication = null;
-$search = trim($_GET['search'] ?? '');
+$search          = trim($_GET['search'] ?? '');
 
-$statuses = [
-        'draft' => 'Draft',
-        'submitted' => 'Submitted',
-        'under_review' => 'Under Review',
-        'approved' => 'Approved',
-        'rejected' => 'Rejected'
-];
+$statuses = getApplicationStatuses();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_application'])) {
-    $userId = (int) ($_POST['user_id'] ?? 0);
-    $courseId = (int) ($_POST['course_id'] ?? 0);
-    $periodId = (int) ($_POST['period_id'] ?? 0);
-    $title = trim($_POST['title'] ?? '');
-    $status = $_POST['status'] ?? 'draft';
-    $coverLetter = trim($_POST['cover_letter'] ?? '');
+    $userId      = (int) ($_POST['user_id']      ?? 0);
+    $courseId    = (int) ($_POST['course_id']    ?? 0);
+    $periodId    = (int) ($_POST['period_id']    ?? 0);
+    $title       = trim($_POST['title']          ?? '');
+    $status      = $_POST['status']              ?? 'draft';
+    $coverLetter = trim($_POST['cover_letter']   ?? '');
     $qualifications = trim($_POST['qualifications'] ?? '');
 
-    if ($userId <= 0) $errors[] = 'Candidate is required.';
-    if ($courseId <= 0) $errors[] = 'Course is required.';
-    if ($periodId <= 0) $errors[] = 'Recruitment period is required.';
-    if ($title === '') $errors[] = 'Application title is required.';
-
-    if (!array_key_exists($status, $statuses)) {
-        $errors[] = 'Invalid status selected.';
-    }
+    if ($userId   <= 0)                          $errors[] = 'Candidate is required.';
+    if ($courseId <= 0)                          $errors[] = 'Course is required.';
+    if ($periodId <= 0)                          $errors[] = 'Recruitment period is required.';
+    if ($title    === '')                        $errors[] = 'Application title is required.';
+    if (!array_key_exists($status, $statuses))   $errors[] = 'Invalid status selected.';
 
     if (empty($errors)) {
         $stmt = $pdo->prepare("
             INSERT INTO applications (
                 user_id, course_id, period_id, title, status, cover_letter, qualifications
-            )
-            VALUES (
+            ) VALUES (
                 :user_id, :course_id, :period_id, :title, :status, :cover_letter, :qualifications
             )
         ");
 
         $stmt->execute([
-                ':user_id' => $userId,
-                ':course_id' => $courseId,
-                ':period_id' => $periodId,
-                ':title' => $title,
-                ':status' => $status,
-                ':cover_letter' => $coverLetter,
-                ':qualifications' => $qualifications
+                ':user_id'        => $userId,
+                ':course_id'      => $courseId,
+                ':period_id'      => $periodId,
+                ':title'          => $title,
+                ':status'         => $status,
+                ':cover_letter'   => $coverLetter,
+                ':qualifications' => $qualifications,
         ]);
 
         $_SESSION['flash'] = [
-                'type' => 'success',
+                'type'  => 'success',
                 'title' => 'Application created',
-                'text' => 'The application was created successfully.'
+                'text'  => 'The application was created successfully.',
         ];
 
         header('Location: admin.php?page=applications');
@@ -66,17 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_application'])
 }
 
 if ($action === 'edit' && isset($_GET['id'])) {
-    $id = (int) $_GET['id'];
-
+    $id   = (int) $_GET['id'];
     $stmt = $pdo->prepare("SELECT * FROM applications WHERE id = :id LIMIT 1");
     $stmt->execute([':id' => $id]);
     $editApplication = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$editApplication) {
         $_SESSION['flash'] = [
-                'type' => 'error',
+                'type'  => 'error',
                 'title' => 'Application not found',
-                'text' => 'The selected application could not be found.'
+                'text'  => 'The selected application could not be found.',
         ];
 
         header('Location: admin.php?page=applications');
@@ -85,86 +75,80 @@ if ($action === 'edit' && isset($_GET['id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_application'])) {
-    $id = (int) ($_POST['id'] ?? 0);
-    $userId = (int) ($_POST['user_id'] ?? 0);
-    $courseId = (int) ($_POST['course_id'] ?? 0);
-    $periodId = (int) ($_POST['period_id'] ?? 0);
-    $title = trim($_POST['title'] ?? '');
-    $status = $_POST['status'] ?? 'draft';
-    $coverLetter = trim($_POST['cover_letter'] ?? '');
+    $id          = (int) ($_POST['id']           ?? 0);
+    $userId      = (int) ($_POST['user_id']      ?? 0);
+    $courseId    = (int) ($_POST['course_id']    ?? 0);
+    $periodId    = (int) ($_POST['period_id']    ?? 0);
+    $title       = trim($_POST['title']          ?? '');
+    $status      = $_POST['status']              ?? 'draft';
+    $coverLetter = trim($_POST['cover_letter']   ?? '');
     $qualifications = trim($_POST['qualifications'] ?? '');
 
-    if ($userId <= 0) $errors[] = 'Candidate is required.';
-    if ($courseId <= 0) $errors[] = 'Course is required.';
-    if ($periodId <= 0) $errors[] = 'Recruitment period is required.';
-    if ($title === '') $errors[] = 'Application title is required.';
-
-    if (!array_key_exists($status, $statuses)) {
-        $errors[] = 'Invalid status selected.';
-    }
+    if ($userId   <= 0)                          $errors[] = 'Candidate is required.';
+    if ($courseId <= 0)                          $errors[] = 'Course is required.';
+    if ($periodId <= 0)                          $errors[] = 'Recruitment period is required.';
+    if ($title    === '')                        $errors[] = 'Application title is required.';
+    if (!array_key_exists($status, $statuses))   $errors[] = 'Invalid status selected.';
 
     if (empty($errors)) {
         $stmt = $pdo->prepare("
             UPDATE applications
-            SET user_id = :user_id,
-                course_id = :course_id,
-                period_id = :period_id,
-                title = :title,
-                status = :status,
-                cover_letter = :cover_letter,
+            SET user_id        = :user_id,
+                course_id      = :course_id,
+                period_id      = :period_id,
+                title          = :title,
+                status         = :status,
+                cover_letter   = :cover_letter,
                 qualifications = :qualifications
             WHERE id = :id
         ");
 
         $stmt->execute([
-                ':user_id' => $userId,
-                ':course_id' => $courseId,
-                ':period_id' => $periodId,
-                ':title' => $title,
-                ':status' => $status,
-                ':cover_letter' => $coverLetter,
+                ':user_id'        => $userId,
+                ':course_id'      => $courseId,
+                ':period_id'      => $periodId,
+                ':title'          => $title,
+                ':status'         => $status,
+                ':cover_letter'   => $coverLetter,
                 ':qualifications' => $qualifications,
-                ':id' => $id
+                ':id'             => $id,
         ]);
 
         $_SESSION['flash'] = [
-                'type' => 'success',
+                'type'  => 'success',
                 'title' => 'Application updated',
-                'text' => 'The application was updated successfully.'
+                'text'  => 'The application was updated successfully.',
         ];
 
         header('Location: admin.php?page=applications');
         exit;
     }
 
-    $action = 'edit';
+    $action          = 'edit';
     $editApplication = [
-            'id' => $id,
-            'user_id' => $userId,
-            'course_id' => $courseId,
-            'period_id' => $periodId,
-            'title' => $title,
-            'status' => $status,
-            'cover_letter' => $coverLetter,
-            'qualifications' => $qualifications
+            'id'             => $id,
+            'user_id'        => $userId,
+            'course_id'      => $courseId,
+            'period_id'      => $periodId,
+            'title'          => $title,
+            'status'         => $status,
+            'cover_letter'   => $coverLetter,
+            'qualifications' => $qualifications,
     ];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $id = (int) ($_POST['id'] ?? 0);
-    $status = $_POST['status'] ?? '';
+    $id     = (int) ($_POST['id']     ?? 0);
+    $status = $_POST['status']        ?? '';
 
     if ($id > 0 && array_key_exists($status, $statuses)) {
         $stmt = $pdo->prepare("UPDATE applications SET status = :status WHERE id = :id");
-        $stmt->execute([
-                ':status' => $status,
-                ':id' => $id
-        ]);
+        $stmt->execute([':status' => $status, ':id' => $id]);
 
         $_SESSION['flash'] = [
-                'type' => 'success',
+                'type'  => 'success',
                 'title' => 'Status updated',
-                'text' => 'Application status was updated successfully.'
+                'text'  => 'Application status was updated successfully.',
         ];
     }
 
@@ -183,18 +167,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_employee'])) {
         if ($application) {
             $pdo->beginTransaction();
 
-            $updateApplication = $pdo->prepare("UPDATE applications SET status = 'approved' WHERE id = :id");
-            $updateApplication->execute([':id' => $id]);
+            $pdo->prepare("UPDATE applications SET status = 'approved' WHERE id = :id")
+                    ->execute([':id' => $id]);
 
-            $updateUser = $pdo->prepare("UPDATE users SET role = 'ee' WHERE id = :user_id");
-            $updateUser->execute([':user_id' => (int) $application['user_id']]);
+            $pdo->prepare("UPDATE users SET role = 'ee' WHERE id = :user_id")
+                    ->execute([':user_id' => (int) $application['user_id']]);
 
             $pdo->commit();
 
             $_SESSION['flash'] = [
-                    'type' => 'success',
+                    'type'  => 'success',
                     'title' => 'Employee assigned',
-                    'text' => 'Candidate was approved and assigned as EE.'
+                    'text'  => 'Candidate was approved and assigned as EE.',
             ];
         }
     }
@@ -207,13 +191,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_application'])
     $id = (int) ($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("DELETE FROM applications WHERE id = :id");
-        $stmt->execute([':id' => $id]);
+        $pdo->prepare("DELETE FROM applications WHERE id = :id")
+                ->execute([':id' => $id]);
 
         $_SESSION['flash'] = [
-                'type' => 'success',
+                'type'  => 'success',
                 'title' => 'Application deleted',
-                'text' => 'Application was deleted successfully.'
+                'text'  => 'Application was deleted successfully.',
         ];
     }
 
@@ -253,34 +237,34 @@ $sql = "
         a.cv_original_name,
         a.created_at,
         a.updated_at,
-        u.username AS candidate_name,
-        u.email AS candidate_email,
-        c.name AS course_name,
-        c.code AS course_code,
-        d.name AS department_name,
-        f.name AS faculty_name,
-        rp.title AS period_title
+        u.username  AS candidate_name,
+        u.email     AS candidate_email,
+        c.name      AS course_name,
+        c.code      AS course_code,
+        d.name      AS department_name,
+        f.name      AS faculty_name,
+        rp.title    AS period_title
     FROM applications a
-    INNER JOIN users u ON a.user_id = u.id
-    INNER JOIN courses c ON a.course_id = c.id
-    INNER JOIN departments d ON c.department_id = d.id
-    INNER JOIN faculties f ON d.faculty_id = f.id
-    INNER JOIN recruitment_periods rp ON a.period_id = rp.id
+    INNER JOIN users              u  ON a.user_id    = u.id
+    INNER JOIN courses            c  ON a.course_id  = c.id
+    INNER JOIN departments        d  ON c.department_id = d.id
+    INNER JOIN faculties          f  ON d.faculty_id = f.id
+    INNER JOIN recruitment_periods rp ON a.period_id  = rp.id
 ";
 
 $params = [];
 
 if ($search !== '') {
     $sql .= "
-        WHERE a.title LIKE :search
-        OR a.status LIKE :search
-        OR u.username LIKE :search
-        OR u.email LIKE :search
-        OR c.name LIKE :search
-        OR c.code LIKE :search
-        OR d.name LIKE :search
-        OR f.name LIKE :search
-        OR rp.title LIKE :search
+        WHERE a.title   LIKE :search
+           OR a.status  LIKE :search
+           OR u.username LIKE :search
+           OR u.email   LIKE :search
+           OR c.name    LIKE :search
+           OR c.code    LIKE :search
+           OR d.name    LIKE :search
+           OR f.name    LIKE :search
+           OR rp.title  LIKE :search
     ";
     $params[':search'] = '%' . $search . '%';
 }
@@ -290,18 +274,6 @@ $sql .= " ORDER BY a.id DESC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-function adminStatusClass(string $status): string
-{
-    return match ($status) {
-        'draft' => 'status-pending',
-        'submitted' => 'status-submitted',
-        'under_review' => 'status-review',
-        'approved' => 'status-approved',
-        'rejected' => 'status-rejected',
-        default => 'status-pending',
-    };
-}
 ?>
 
 <section class="page-card list-card">
@@ -330,7 +302,11 @@ function adminStatusClass(string $status): string
 
     <?php if ($action === 'create' || ($action === 'edit' && $editApplication)): ?>
         <section class="search-card">
-            <form method="POST" action="admin.php?page=applications<?= $action === 'edit' ? '&action=edit&id=' . (int) $editApplication['id'] : '&action=create'; ?>" class="admin-form js-validate-form" novalidate>
+            <form method="POST"
+                  action="admin.php?page=applications<?= $action === 'edit' ? '&action=edit&id=' . (int) $editApplication['id'] : '&action=create'; ?>"
+                  class="admin-form js-validate-form"
+                  novalidate>
+
                 <?php if ($action === 'edit'): ?>
                     <input type="hidden" name="id" value="<?= (int) $editApplication['id']; ?>">
                 <?php endif; ?>
@@ -341,7 +317,8 @@ function adminStatusClass(string $status): string
                     <select id="user_id" name="user_id" class="admin-select" required>
                         <option value="">Select candidate</option>
                         <?php foreach ($candidates as $candidate): ?>
-                            <option value="<?= (int) $candidate['id']; ?>" <?= (string) $selectedUser === (string) $candidate['id'] ? 'selected' : ''; ?>>
+                            <option value="<?= (int) $candidate['id']; ?>"
+                                    <?= (string) $selectedUser === (string) $candidate['id'] ? 'selected' : ''; ?>>
                                 <?= htmlspecialchars($candidate['username'] . ' - ' . $candidate['email'] . ' (' . $candidate['role'] . ')'); ?>
                             </option>
                         <?php endforeach; ?>
@@ -354,7 +331,8 @@ function adminStatusClass(string $status): string
                     <select id="course_id" name="course_id" class="admin-select" required>
                         <option value="">Select course</option>
                         <?php foreach ($courses as $course): ?>
-                            <option value="<?= (int) $course['id']; ?>" <?= (string) $selectedCourse === (string) $course['id'] ? 'selected' : ''; ?>>
+                            <option value="<?= (int) $course['id']; ?>"
+                                    <?= (string) $selectedCourse === (string) $course['id'] ? 'selected' : ''; ?>>
                                 <?= htmlspecialchars($course['faculty_name'] . ' - ' . $course['department_name'] . ' - ' . $course['name']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -367,7 +345,8 @@ function adminStatusClass(string $status): string
                     <select id="period_id" name="period_id" class="admin-select" required>
                         <option value="">Select period</option>
                         <?php foreach ($periods as $period): ?>
-                            <option value="<?= (int) $period['id']; ?>" <?= (string) $selectedPeriod === (string) $period['id'] ? 'selected' : ''; ?>>
+                            <option value="<?= (int) $period['id']; ?>"
+                                    <?= (string) $selectedPeriod === (string) $period['id'] ? 'selected' : ''; ?>>
                                 <?= htmlspecialchars($period['title'] . ((int) $period['is_active'] === 1 ? ' (active)' : '')); ?>
                             </option>
                         <?php endforeach; ?>
@@ -379,7 +358,8 @@ function adminStatusClass(string $status): string
                     <?php $selectedStatus = $action === 'edit' ? ($editApplication['status'] ?? 'draft') : ($_POST['status'] ?? 'draft'); ?>
                     <select id="status" name="status" class="admin-select" required>
                         <?php foreach ($statuses as $value => $label): ?>
-                            <option value="<?= htmlspecialchars($value); ?>" <?= $selectedStatus === $value ? 'selected' : ''; ?>>
+                            <option value="<?= htmlspecialchars($value); ?>"
+                                    <?= $selectedStatus === $value ? 'selected' : ''; ?>>
                                 <?= htmlspecialchars($label); ?>
                             </option>
                         <?php endforeach; ?>
@@ -388,7 +368,9 @@ function adminStatusClass(string $status): string
 
                 <div class="form-group full-width">
                     <label for="title">Application Title</label>
-                    <input type="text" id="title" name="title" value="<?= htmlspecialchars($action === 'edit' ? ($editApplication['title'] ?? '') : ($_POST['title'] ?? '')); ?>" required>
+                    <input type="text" id="title" name="title"
+                           value="<?= htmlspecialchars($action === 'edit' ? ($editApplication['title'] ?? '') : ($_POST['title'] ?? '')); ?>"
+                           required>
                 </div>
 
                 <div class="form-group full-width">
@@ -417,7 +399,9 @@ function adminStatusClass(string $status): string
 
                 <div class="search-group">
                     <label for="search">Search applications</label>
-                    <input type="text" id="search" name="search" placeholder="Search by candidate, course, department, period or status" value="<?= htmlspecialchars($search); ?>">
+                    <input type="text" id="search" name="search"
+                           placeholder="Search by candidate, course, department, period or status"
+                           value="<?= htmlspecialchars($search); ?>">
                 </div>
 
                 <div class="list-actions">
@@ -443,8 +427,8 @@ function adminStatusClass(string $status): string
                                 <h3><?= htmlspecialchars($application['title']); ?></h3>
                             </div>
 
-                            <span class="status-pill <?= adminStatusClass($application['status']); ?>">
-                                <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $application['status']))); ?>
+                            <span class="status-pill <?= getStatusCssClass($application['status']); ?>">
+                                <?= htmlspecialchars(getStatusLabel($application['status'])); ?>
                             </span>
                         </div>
 
@@ -482,7 +466,8 @@ function adminStatusClass(string $status): string
                             <div class="status-change-row">
                                 <select id="status_<?= (int) $application['id']; ?>" name="status" class="admin-select">
                                     <?php foreach ($statuses as $value => $label): ?>
-                                        <option value="<?= htmlspecialchars($value); ?>" <?= $application['status'] === $value ? 'selected' : ''; ?>>
+                                        <option value="<?= htmlspecialchars($value); ?>"
+                                                <?= $application['status'] === $value ? 'selected' : ''; ?>>
                                             <?= htmlspecialchars($label); ?>
                                         </option>
                                     <?php endforeach; ?>

@@ -8,13 +8,21 @@ function protectedIsActive($file, $currentProtectedPage) {
 <aside class="sidebar">
     <div class="sidebar-top">
         <div class="sidebar-brand">
-            <span>EE</span> <strong>User</strong>
+            <span>EE</span> <strong>Recruitment</strong>
         </div>
     </div>
 
     <nav class="sidebar-nav">
         <a href="list.php" class="<?= protectedIsActive('list.php', $currentProtectedPage); ?>">Applications</a>
         <a href="dashboard.php" class="<?= protectedIsActive('dashboard.php', $currentProtectedPage); ?>">Account Settings</a>
+
+        <?php if (($_SESSION['role'] ?? '') === 'hr'): ?>
+            <div class="sidebar-divider"></div>
+
+            <a href="../modules/evaluation/lms_sync.php" class="sidebar-link">
+                Switch to Enrolment
+            </a>
+        <?php endif; ?>
 
         <a href="../auth/logout.php" class="btn btn-danger sidebar-logout js-confirm-logout">Logout</a>
 </aside>

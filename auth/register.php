@@ -1,5 +1,4 @@
 <?php
-
 require_once '../includes/db.php';
 
 $errors = [];
@@ -7,47 +6,47 @@ $username = '';
 $email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
 
     if ($username === '') {
-        $errors[] = 'Username is required';
+        $errors[] = 'Username is required.';
     }
 
     if ($email === '') {
-        $errors[] = 'Email is required';
+        $errors[] = 'Email is required.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Email is invalid';
+        $errors[] = 'Email is invalid.';
     }
 
     if ($password === '') {
-        $errors[] = 'Password is required';
+        $errors[] = 'Password is required.';
     } elseif (strlen($password) < 8) {
-        $errors[] = 'Password must be at least 8 characters';
+        $errors[] = 'Password must be at least 8 characters.';
     }
 
-    if ($confirm_password === '') {
-        $errors[] = 'Confirm password is required';
-    }
-
-    if ($password !== $confirm_password) {
-        $errors[] = 'Passwords do not match';
+    if ($confirmPassword === '') {
+        $errors[] = 'Confirm password is required.';
+    } elseif ($password !== $confirmPassword) {
+        $errors[] = 'Passwords do not match.';
     }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email');
-        $stmt->execute(['email' => $email]);
-        $existingUser = $stmt->fetch();
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username OR email = :email LIMIT 1');
+        $stmt->execute([
+                ':username' => $username,
+                ':email' => $email
+        ]);
 
-        if ($existingUser) {
-            $errors[] = 'Email already in use';
+        if ($stmt->fetch()) {
+            $errors[] = 'Username or email already in use.';
         }
     }
 
     if (empty($errors)) {
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
         $stmt = $pdo->prepare('
             INSERT INTO users (username, email, password_hash, role)
@@ -55,10 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ');
 
         $stmt->execute([
-            'username' => $username,
-            'email' => $email,
-            'password_hash' => $password_hash,
-            'role' => 'user'
+                ':username' => $username,
+                ':email' => $email,
+                ':password_hash' => $passwordHash,
+                ':role' => 'candidate'
         ]);
 
         header('Location: login.php?registered=1');
@@ -66,43 +65,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Create Account</title>
+
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
+
+    <style>
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 18px;
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .auth-logo span {
+            color: #2563eb;
+        }
+
+        .auth-card {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+    </style>
 </head>
 <body>
-<div class="auth-page">
-    <div class="top-brand">Special Scientists <strong>C.U.T.</strong></div>
 
+<div class="auth-page">
     <div class="auth-wrapper">
         <div class="auth-card">
-            <h1 class="auth-title">Sign up</h1>
-            <p class="auth-subtitle">Create an account to continue</p>
+            <div class="auth-logo">
+                EE <span>C.U.T.</span>
+            </div>
+
+            <h1 class="auth-title">Create account</h1>
+            <p class="auth-subtitle">Sign up to start your application</p>
 
             <?php if (!empty($errors)): ?>
                 <div class="error">
                     <ul>
                         <?php foreach ($errors as $error): ?>
-                            <li><?php echo htmlspecialchars($error); ?></li>
+                            <li><?= htmlspecialchars($error); ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="">
+            <form method="POST" action="" class="auth-form">
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input
                             type="text"
                             id="username"
                             name="username"
-                            value="<?php echo htmlspecialchars($username); ?>"
+                            value="<?= htmlspecialchars($username); ?>"
+                            required
                     >
                 </div>
 
@@ -112,7 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             type="email"
                             id="email"
                             name="email"
-                            value="<?php echo htmlspecialchars($email); ?>"
+                            value="<?= htmlspecialchars($email); ?>"
+                            required
                     >
                 </div>
 
@@ -122,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             type="password"
                             id="password"
                             name="password"
+                            required
                     >
                 </div>
 
@@ -131,10 +155,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             type="password"
                             id="confirm_password"
                             name="confirm_password"
+                            required
                     >
                 </div>
 
-                <button type="submit" class="btn btn-primary auth-submit">Sign up</button>
+                <button type="submit" class="btn btn-primary auth-submit">
+                    Sign up
+                </button>
             </form>
 
             <p class="auth-link">
@@ -144,5 +171,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+
 </body>
 </html>

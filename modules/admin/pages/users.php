@@ -1,17 +1,20 @@
 <?php
 
 require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../includes/crud/users_crud.php';
 
 $errors = [];
 $action = $_GET['action'] ?? 'list';
 $editUser = null;
 $search = trim($_GET['search'] ?? '');
 
+$allowedRoles = ['admin', 'candidate', 'evaluator', 'hr', 'ee'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    $role = $_POST['role'] ?? 'user';
+    $role = $_POST['role'] ?? 'candidate';
 
     if ($username === '') {
         $errors[] = 'Username is required.';
@@ -25,52 +28,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
         $errors[] = 'Password must be at least 6 characters.';
     }
 
-    if (!in_array($role, ['admin', 'user'], true)) {
+    if (!in_array($role, $allowedRoles, true)) {
         $errors[] = 'Invalid role selected.';
     }
 
+    if (empty($errors) && userExistsByUsernameOrEmail($pdo, $username, $email)) {
+        $errors[] = 'Username or email already exists.';
+    }
+
     if (empty($errors)) {
-        $checkStmt = $pdo->prepare("SELECT id FROM users WHERE username = :username OR email = :email LIMIT 1");
-        $checkStmt->execute([
-            ':username' => $username,
-            ':email' => $email
-        ]);
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        createUser($pdo, $username, $email, $passwordHash, $role);
 
-        if ($checkStmt->fetch()) {
-            $errors[] = 'Username or email already exists.';
-        } else {
-            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-
-            $stmt = $pdo->prepare("
-                INSERT INTO users (username, email, password_hash, role)
-                VALUES (:username, :email, :password_hash, :role)
-            ");
-
-            $stmt->execute([
-                ':username' => $username,
-                ':email' => $email,
-                ':password_hash' => $passwordHash,
-                ':role' => $role
-            ]);
-
-            $_SESSION['flash'] = [
+        $_SESSION['flash'] = [
                 'type' => 'success',
                 'title' => 'User created',
                 'text' => 'The user was created successfully.'
-            ];
+        ];
 
-            header('Location: admin.php?page=users');
-            exit;
-        }
+        header('Location: admin.php?page=users');
+        exit;
     }
 }
 
 if ($action === 'edit' && isset($_GET['id'])) {
     $id = (int) $_GET['id'];
-
-    $stmt = $pdo->prepare("SELECT id, username, email, role, created_at FROM users WHERE id = :id LIMIT 1");
-    $stmt->execute([':id' => $id]);
-    $editUser = $stmt->fetch(PDO::FETCH_ASSOC);
+    $editUser = getUserById($pdo, $id);
 
     if (!$editUser) {
         $errors[] = 'User not found.';
@@ -83,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    $role = $_POST['role'] ?? 'user';
+    $role = $_POST['role'] ?? 'candidate';
 
     if ($username === '') {
         $errors[] = 'Username is required.';
@@ -93,102 +76,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
         $errors[] = 'A valid email is required.';
     }
 
-    if (!in_array($role, ['admin', 'user'], true)) {
+    if (!in_array($role, $allowedRoles, true)) {
         $errors[] = 'Invalid role selected.';
     }
 
-    if (empty($errors)) {
-        $checkStmt = $pdo->prepare("
-            SELECT id
-            FROM users
-            WHERE (username = :username OR email = :email) AND id != :id
-            LIMIT 1
-        ");
-        $checkStmt->execute([
-            ':username' => $username,
-            ':email' => $email,
-            ':id' => $id
-        ]);
-
-        if ($checkStmt->fetch()) {
-            $errors[] = 'Another user already uses that username or email.';
-        } else {
-            if ($password !== '') {
-                if (strlen($password) < 6) {
-                    $errors[] = 'Password must be at least 6 characters.';
-                } else {
-                    $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-
-                    $stmt = $pdo->prepare("
-                        UPDATE users
-                        SET username = :username,
-                            email = :email,
-                            password_hash = :password_hash,
-                            role = :role
-                        WHERE id = :id
-                    ");
-
-                    $stmt->execute([
-                        ':username' => $username,
-                        ':email' => $email,
-                        ':password_hash' => $passwordHash,
-                        ':role' => $role,
-                        ':id' => $id
-                    ]);
-
-                    $_SESSION['flash'] = [
-                        'type' => 'success',
-                        'title' => 'User updated',
-                        'text' => 'The user was updated successfully.'
-                    ];
-
-                    header('Location: admin.php?page=users');
-                    exit;
-                }
-            } else {
-                $stmt = $pdo->prepare("
-                    UPDATE users
-                    SET username = :username,
-                        email = :email,
-                        role = :role
-                    WHERE id = :id
-                ");
-
-                $stmt->execute([
-                    ':username' => $username,
-                    ':email' => $email,
-                    ':role' => $role,
-                    ':id' => $id
-                ]);
-
-                $_SESSION['flash'] = [
-                    'type' => 'success',
-                    'title' => 'User updated',
-                    'text' => 'The user was updated successfully.'
-                ];
-
-                header('Location: admin.php?page=users');
-                exit;
-            }
-        }
+    if ($password !== '' && strlen($password) < 6) {
+        $errors[] = 'Password must be at least 6 characters.';
     }
 
-    if (!empty($errors)) {
-        $action = 'edit';
-        $editUser = [
+    if (empty($errors) && userExistsByUsernameOrEmail($pdo, $username, $email, $id)) {
+        $errors[] = 'Another user already uses that username or email.';
+    }
+
+    if (empty($errors)) {
+        if ($password !== '') {
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+            updateUserAdminWithPassword($pdo, $id, $username, $email, $role, $passwordHash);
+        } else {
+            updateUserAdmin($pdo, $id, $username, $email, $role);
+        }
+
+        $_SESSION['flash'] = [
+                'type' => 'success',
+                'title' => 'User updated',
+                'text' => 'The user was updated successfully.'
+        ];
+
+        header('Location: admin.php?page=users');
+        exit;
+    }
+
+    $action = 'edit';
+    $editUser = [
             'id' => $id,
             'username' => $username,
             'email' => $email,
             'role' => $role
-        ];
-    }
+    ];
 }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     $id = (int) ($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
-        $stmt->execute([':id' => $id]);
+        deleteUser($pdo, $id);
 
         $_SESSION['flash'] = [
                 'type' => 'success',
@@ -203,19 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     $errors[] = 'Invalid user selected.';
 }
 
-$sql = "SELECT id, username, email, role, created_at FROM users";
-$params = [];
-
-if ($search !== '') {
-    $sql .= " WHERE username LIKE :search OR email LIKE :search OR role LIKE :search";
-    $params[':search'] = '%' . $search . '%';
-}
-
-$sql .= " ORDER BY id DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$users = searchUsers($pdo, $search);
 ?>
 
 <section class="page-card list-card">
@@ -262,8 +181,11 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="form-group">
                     <label for="role">Role</label>
                     <select id="role" name="role" class="admin-select">
-                        <option value="user" <?= (($_POST['role'] ?? '') === 'user') ? 'selected' : ''; ?>>User</option>
-                        <option value="admin" <?= (($_POST['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                        <?php foreach ($allowedRoles as $allowedRole): ?>
+                            <option value="<?= htmlspecialchars($allowedRole); ?>" <?= (($_POST['role'] ?? 'candidate') === $allowedRole) ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($allowedRole); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
@@ -298,8 +220,11 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="form-group full-width">
                     <label for="role">Role</label>
                     <select id="role" name="role" class="admin-select">
-                        <option value="user" <?= (($editUser['role'] ?? $_POST['role'] ?? '') === 'user') ? 'selected' : ''; ?>>User</option>
-                        <option value="admin" <?= (($editUser['role'] ?? $_POST['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                        <?php foreach ($allowedRoles as $allowedRole): ?>
+                            <option value="<?= htmlspecialchars($allowedRole); ?>" <?= (($editUser['role'] ?? $_POST['role'] ?? 'candidate') === $allowedRole) ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($allowedRole); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
@@ -307,6 +232,8 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <button type="submit" name="update_user" class="btn btn-primary">Update User</button>
                     <a href="admin.php?page=users" class="btn btn-secondary">Cancel</a>
                 </div>
+
+
             </form>
         </section>
 

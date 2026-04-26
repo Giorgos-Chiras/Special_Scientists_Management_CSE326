@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../includes/crud/system_settings_crud.php';
 
 $errors = [];
 
@@ -12,19 +13,7 @@ $defaultSettings = [
 ];
 
 foreach ($defaultSettings as $key => $value) {
-    $stmt = $pdo->prepare("SELECT id FROM system_settings WHERE setting_key = :setting_key LIMIT 1");
-    $stmt->execute([':setting_key' => $key]);
-
-    if (!$stmt->fetch()) {
-        $insertStmt = $pdo->prepare("
-            INSERT INTO system_settings (setting_key, setting_value)
-            VALUES (:setting_key, :setting_value)
-        ");
-        $insertStmt->execute([
-                ':setting_key' => $key,
-                ':setting_value' => $value
-        ]);
-    }
+    upsertSystemSetting($pdo, $key, $value);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_settings'])) {
@@ -64,15 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_settings'])) {
         ];
 
         foreach ($settingsToUpdate as $key => $value) {
-            $stmt = $pdo->prepare("
-                UPDATE system_settings
-                SET setting_value = :setting_value
-                WHERE setting_key = :setting_key
-            ");
-            $stmt->execute([
-                    ':setting_value' => $value,
-                    ':setting_key' => $key
-            ]);
+            upsertSystemSetting($pdo, $key, $value);
         }
 
         $_SESSION['flash'] = [
@@ -86,14 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_settings'])) {
     }
 }
 
-$stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$settings = $defaultSettings;
-
-foreach ($rows as $row) {
-    $settings[$row['setting_key']] = $row['setting_value'];
-}
+$settings = array_merge($defaultSettings, getSystemSettingsMap($pdo));
 ?>
 
 <section class="page-card list-card">

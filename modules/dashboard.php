@@ -7,14 +7,12 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/crud/users_crud.php';
 
 $errors = [];
-
 $userId = (int) $_SESSION['user_id'];
 
-$stmt = $pdo->prepare("SELECT id, username, email, password_hash FROM users WHERE id = :id LIMIT 1");
-$stmt->execute([':id' => $userId]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$user = getUserAccountById($pdo, $userId);
 
 if (!$user) {
     $_SESSION = [];
@@ -42,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
     }
 
     if ($newPassword !== '' || $confirmNewPassword !== '') {
-
         if ($currentPassword === '') {
             $errors[] = 'Current password is required to change password.';
         } elseif (!password_verify($currentPassword, $user['password_hash'])) {
@@ -58,48 +55,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
         }
     }
 
-    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE (username = :username OR email = :email) AND id != :id LIMIT 1");
-    $checkStmt->execute([
-            ':username' => $username,
-            ':email' => $email,
-            ':id' => $userId
-    ]);
-
-    if ($checkStmt->fetch()) {
+    if (userExistsByUsernameOrEmail($pdo, $username, $email, $userId)) {
         $errors[] = 'Another account already uses that name or email.';
     }
 
     if (empty($errors)) {
         if ($newPassword !== '') {
             $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-
-            $updateStmt = $pdo->prepare("
-                UPDATE users
-                SET username = :username,
-                    email = :email,
-                    password_hash = :password_hash
-                WHERE id = :id
-            ");
-
-            $updateStmt->execute([
-                    ':username' => $username,
-                    ':email' => $email,
-                    ':password_hash' => $newPasswordHash,
-                    ':id' => $userId
-            ]);
+            updateUserProfileWithPassword($pdo, $userId, $username, $email, $newPasswordHash);
         } else {
-            $updateStmt = $pdo->prepare("
-                UPDATE users
-                SET username = :username,
-                    email = :email
-                WHERE id = :id
-            ");
-
-            $updateStmt->execute([
-                    ':username' => $username,
-                    ':email' => $email,
-                    ':id' => $userId
-            ]);
+            updateUserProfile($pdo, $userId, $username, $email);
         }
 
         $_SESSION['username'] = $username;
@@ -115,16 +80,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
         exit;
     }
 
-    if (!empty($errors)) {
-        $_SESSION['flash'] = [
-                'type' => 'error',
-                'title' => 'Error',
-                'text' => implode('<br>', $errors)
-        ];
+    $_SESSION['flash'] = [
+            'type' => 'error',
+            'title' => 'Error',
+            'text' => implode('<br>', $errors)
+    ];
 
-        $currentUsername = $username;
-        $currentEmail = $email;
-    }
+    $currentUsername = $username;
+    $currentEmail = $email;
 }
 ?>
     <!DOCTYPE html>

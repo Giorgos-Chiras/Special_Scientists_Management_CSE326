@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../includes/crud/faculties_crud.php';
 
 $errors = [];
 $action = $_GET['action'] ?? 'list';
@@ -13,34 +14,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_faculty'])) {
         $errors[] = 'Faculty name is required.';
     }
 
+    if (empty($errors) && facultyExistsByName($pdo, $name)) {
+        $errors[] = 'A faculty with this name already exists.';
+    }
+
     if (empty($errors)) {
-        $checkStmt = $pdo->prepare("SELECT id FROM faculties WHERE name = :name LIMIT 1");
-        $checkStmt->execute([':name' => $name]);
+        createFaculty($pdo, $name);
 
-        if ($checkStmt->fetch()) {
-            $errors[] = 'A faculty with this name already exists.';
-        } else {
-            $stmt = $pdo->prepare("INSERT INTO faculties (name) VALUES (:name)");
-            $stmt->execute([':name' => $name]);
+        $_SESSION['flash'] = [
+                'type' => 'success',
+                'title' => 'Faculty created',
+                'text' => 'The faculty was created successfully.'
+        ];
 
-            $_SESSION['flash'] = [
-                    'type' => 'success',
-                    'title' => 'Faculty created',
-                    'text' => 'The faculty was created successfully.'
-            ];
-
-            header('Location: admin.php?page=faculties');
-            exit;
-        }
+        header('Location: admin.php?page=faculties');
+        exit;
     }
 }
 
 if ($action === 'edit' && isset($_GET['id'])) {
     $id = (int) $_GET['id'];
-
-    $stmt = $pdo->prepare("SELECT id, name FROM faculties WHERE id = :id LIMIT 1");
-    $stmt->execute([':id' => $id]);
-    $editFaculty = $stmt->fetch(PDO::FETCH_ASSOC);
+    $editFaculty = getFacultyById($pdo, $id);
 
     if (!$editFaculty) {
         $_SESSION['flash'] = [
@@ -62,31 +56,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_faculty'])) {
         $errors[] = 'Faculty name is required.';
     }
 
+    if (empty($errors) && facultyExistsByName($pdo, $name, $id)) {
+        $errors[] = 'Another faculty already uses that name.';
+    }
+
     if (empty($errors)) {
-        $checkStmt = $pdo->prepare("SELECT id FROM faculties WHERE name = :name AND id != :id LIMIT 1");
-        $checkStmt->execute([
-                ':name' => $name,
-                ':id' => $id
-        ]);
+        updateFaculty($pdo, $id, $name);
 
-        if ($checkStmt->fetch()) {
-            $errors[] = 'Another faculty already uses that name.';
-        } else {
-            $stmt = $pdo->prepare("UPDATE faculties SET name = :name WHERE id = :id");
-            $stmt->execute([
-                    ':name' => $name,
-                    ':id' => $id
-            ]);
+        $_SESSION['flash'] = [
+                'type' => 'success',
+                'title' => 'Faculty updated',
+                'text' => 'The faculty was updated successfully.'
+        ];
 
-            $_SESSION['flash'] = [
-                    'type' => 'success',
-                    'title' => 'Faculty updated',
-                    'text' => 'The faculty was updated successfully.'
-            ];
-
-            header('Location: admin.php?page=faculties');
-            exit;
-        }
+        header('Location: admin.php?page=faculties');
+        exit;
     }
 
     $action = 'edit';
@@ -100,8 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_faculty'])) {
     $id = (int) ($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("DELETE FROM faculties WHERE id = :id");
-        $stmt->execute([':id' => $id]);
+        deleteFaculty($pdo, $id);
 
         $_SESSION['flash'] = [
                 'type' => 'success',
@@ -114,19 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_faculty'])) {
     }
 }
 
-$sql = "SELECT id, name FROM faculties";
-$params = [];
-
-if ($search !== '') {
-    $sql .= " WHERE name LIKE :search";
-    $params[':search'] = '%' . $search . '%';
-}
-
-$sql .= " ORDER BY id DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$faculties = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$faculties = searchFaculties($pdo, $search);
 ?>
 
 <section class="page-card list-card">

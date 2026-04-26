@@ -1,57 +1,17 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../includes/crud/applications_crud.php';
+require_once __DIR__ . '/../../../utils/status_utils.php';
+
 
 $id = (int) ($_GET['id'] ?? 0);
-
-$stmt = $pdo->prepare("
-    SELECT
-        a.id,
-        a.title,
-        a.status,
-        a.cover_letter,
-        a.qualifications,
-        a.cv_file_path,
-        a.cv_original_name,
-        a.created_at,
-        a.updated_at,
-        u.username AS candidate_name,
-        u.email AS candidate_email,
-        u.role AS candidate_role,
-        c.name AS course_name,
-        c.code AS course_code,
-        d.name AS department_name,
-        f.name AS faculty_name,
-        rp.title AS period_title,
-        rp.start_date,
-        rp.end_date
-    FROM applications a
-    INNER JOIN users u ON a.user_id = u.id
-    INNER JOIN courses c ON a.course_id = c.id
-    INNER JOIN departments d ON c.department_id = d.id
-    INNER JOIN faculties f ON d.faculty_id = f.id
-    INNER JOIN recruitment_periods rp ON a.period_id = rp.id
-    WHERE a.id = :id
-    LIMIT 1
-");
-$stmt->execute([':id' => $id]);
-$application = $stmt->fetch(PDO::FETCH_ASSOC);
+$application = $id > 0 ? getApplicationById($pdo, $id) : null;
 
 if (!$application) {
     echo '<section class="page-card list-card"><h1 class="page-title">Application not found</h1></section>';
     return;
 }
 
-function viewStatusClass(string $status): string
-{
-    return match ($status) {
-        'draft' => 'status-pending',
-        'submitted' => 'status-submitted',
-        'under_review' => 'status-review',
-        'approved' => 'status-approved',
-        'rejected' => 'status-rejected',
-        default => 'status-pending',
-    };
-}
 ?>
 
 <section class="page-card list-card">
@@ -70,7 +30,7 @@ function viewStatusClass(string $status): string
     <div class="application-admin-head">
         <span class="application-admin-id">#<?= (int) $application['id']; ?></span>
 
-        <span class="status-pill <?= viewStatusClass($application['status']); ?>">
+        <span class="status-pill <?= getStatusCssClass($application['status']); ?>">
             <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $application['status']))); ?>
         </span>
     </div>
@@ -84,7 +44,7 @@ function viewStatusClass(string $status): string
 
         <div>
             <span>Role</span>
-            <strong><?= htmlspecialchars($application['candidate_role']); ?></strong>
+            <strong><?= htmlspecialchars(getRoleLabel($application['candidate_role'])); ?></strong>
         </div>
 
         <div>

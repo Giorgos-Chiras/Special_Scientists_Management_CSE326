@@ -1,4 +1,3 @@
-/* ─── Page shell ─────────────────────────────────────────────── */
 .modern-auth-page {
     min-height: 100vh;
     background:
@@ -7,14 +6,12 @@
             linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #e0f2fe 100%);
 }
 
-/* ─── Two-column split ───────────────────────────────────────── */
 .auth-split {
     min-height: 100vh;
     display: grid;
     grid-template-columns: 1fr 520px;
 }
 
-/* ─── Left showcase panel ────────────────────────────────────── */
 .auth-showcase {
     padding: 42px 7%;
     display: flex;
@@ -46,7 +43,6 @@
     margin: 0;
 }
 
-/* ─── Right form panel ───────────────────────────────────────── */
 .auth-form-panel {
     min-height: 100vh;
     display: flex;
@@ -68,7 +64,6 @@
     box-sizing: border-box;
 }
 
-/* ─── Card header ────────────────────────────────────────────── */
 .auth-logo {
     text-align: center;
     margin-bottom: 18px;
@@ -96,7 +91,6 @@
     margin: 0 0 26px 0;
 }
 
-/* ─── Form ───────────────────────────────────────────────────── */
 .auth-form {
     display: grid;
     gap: 16px;
@@ -137,7 +131,6 @@
     margin-top: 6px;
 }
 
-/* ─── Feedback messages ──────────────────────────────────────── */
 .error,
 .success {
     border-radius: 14px;
@@ -164,7 +157,6 @@
     text-align: center;
 }
 
-/* ─── Footer link ────────────────────────────────────────────── */
 .auth-link {
     margin-top: 22px;
     text-align: center;
@@ -182,7 +174,6 @@
     text-decoration: underline;
 }
 
-/* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .auth-split {
         grid-template-columns: 1fr;

@@ -99,3 +99,19 @@ function deleteSystemSetting(PDO $pdo, int $id): bool
 
     return $stmt->execute([':id' => $id]);
 }
+
+function ensureDefaultSystemSettings(PDO $pdo, array $defaults): void
+{
+    foreach ($defaults as $key => $value) {
+        if (!systemSettingExists($pdo, $key)) {
+            createSystemSetting($pdo, $key, $value);
+        }
+    }
+}
+
+function updateSystemSettings(PDO $pdo, array $settings): void
+{
+    foreach ($settings as $key => $value) {
+        upsertSystemSetting($pdo, $key, $value);
+    }
+}

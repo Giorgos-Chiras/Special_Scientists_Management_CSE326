@@ -1,5 +1,6 @@
 <?php
-$pageTitle = $pageTitle ?? 'Dashboard';
+$pageTitle = $pageTitle ?? 'Account Settings';
+
 $username = $_SESSION['username'] ?? 'User';
 $avatarLetter = strtoupper(substr($username, 0, 1));
 ?>

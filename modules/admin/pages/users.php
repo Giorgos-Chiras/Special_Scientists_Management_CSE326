@@ -2,6 +2,10 @@
 
 require_once __DIR__ . '/../../../includes/db.php';
 require_once __DIR__ . '/../../../includes/crud/users_crud.php';
+require_once __DIR__ . '/../../../utils/user_utils.php';
+require_once __DIR__ . '/../../../utils/time_utils.php';
+
+
 
 $errors = [];
 $action = $_GET['action'] ?? 'list';
@@ -151,13 +155,11 @@ $users = searchUsers($pdo, $search);
     </div>
 
     <?php if (!empty($errors)): ?>
-        <div class="error">
-            <ul>
-                <?php foreach ($errors as $error): ?>
-                    <li><?= htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
+        <?php $_SESSION['flash'] = [
+                'type'  => 'error',
+                'title' => 'Validation Error',
+                'text'  => implode('\n', $errors)
+        ]; ?>
     <?php endif; ?>
 
     <?php if ($action === 'create'): ?>
@@ -183,7 +185,7 @@ $users = searchUsers($pdo, $search);
                     <select id="role" name="role" class="admin-select">
                         <?php foreach ($allowedRoles as $allowedRole): ?>
                             <option value="<?= htmlspecialchars($allowedRole); ?>" <?= (($_POST['role'] ?? 'candidate') === $allowedRole) ? 'selected' : ''; ?>>
-                                <?= htmlspecialchars($allowedRole); ?>
+                                <?= htmlspecialchars(getRoleLabel($allowedRole)); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -222,7 +224,7 @@ $users = searchUsers($pdo, $search);
                     <select id="role" name="role" class="admin-select">
                         <?php foreach ($allowedRoles as $allowedRole): ?>
                             <option value="<?= htmlspecialchars($allowedRole); ?>" <?= (($editUser['role'] ?? $_POST['role'] ?? 'candidate') === $allowedRole) ? 'selected' : ''; ?>>
-                                <?= htmlspecialchars($allowedRole); ?>
+                                <?= htmlspecialchars(getRoleLabel($allowedRole)); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -232,8 +234,6 @@ $users = searchUsers($pdo, $search);
                     <button type="submit" name="update_user" class="btn btn-primary">Update User</button>
                     <a href="admin.php?page=users" class="btn btn-secondary">Cancel</a>
                 </div>
-
-
             </form>
         </section>
 
@@ -245,11 +245,11 @@ $users = searchUsers($pdo, $search);
                 <div class="search-group">
                     <label for="search">Search users</label>
                     <input
-                        type="text"
-                        id="search"
-                        name="search"
-                        placeholder="Search by username, email, or role"
-                        value="<?= htmlspecialchars($search); ?>"
+                            type="text"
+                            id="search"
+                            name="search"
+                            placeholder="Search by username, email, or role"
+                            value="<?= htmlspecialchars($search); ?>"
                     >
                 </div>
 
@@ -290,10 +290,10 @@ $users = searchUsers($pdo, $search);
                                 <td><?= htmlspecialchars($user['email']); ?></td>
                                 <td>
                                     <span class="status-pill <?= $user['role'] === 'admin' ? 'status-approved' : 'status-pending'; ?>">
-                                        <?= htmlspecialchars($user['role']); ?>
+                                        <?= htmlspecialchars(getRoleLabel($user['role'])); ?>
                                     </span>
                                 </td>
-                                <td><?= htmlspecialchars($user['created_at']); ?></td>
+                                <td><?= htmlspecialchars(formatFullDateTime($user['created_at'])); ?></td>
                                 <td>
                                     <div class="table-actions">
                                         <a href="admin.php?page=users&action=edit&id=<?= (int) $user['id']; ?>" class="btn btn-secondary btn-sm-custom">Edit</a>

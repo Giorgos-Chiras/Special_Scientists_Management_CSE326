@@ -411,7 +411,7 @@ $applications = array_values(array_filter(
                         </form>
 
                         <div class="application-admin-actions">
-                            <a href="admin.php?page=application_view&id=<?= (int) $application['id']; ?>" class="btn btn-primary btn-sm-custom">View</a>
+                            <a href="admin.php?page=admin_application_view&id=<?= (int) $application['id']; ?>" class="btn btn-primary btn-sm-custom">View</a>
 
                             <a href="admin.php?page=applications&action=edit&id=<?= (int) $application['id']; ?>" class="btn btn-secondary btn-sm-custom">Edit</a>
 

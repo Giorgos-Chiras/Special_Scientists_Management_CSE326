@@ -20,7 +20,7 @@ function protectedIsActive($file, $currentProtectedPage) {
             <div class="sidebar-divider"></div>
 
             <a href="../modules/evaluation/lms_sync.php" class="sidebar-link">
-                Switch to Enrolment
+                Switch to Enrollment
             </a>
         <?php endif; ?>
 

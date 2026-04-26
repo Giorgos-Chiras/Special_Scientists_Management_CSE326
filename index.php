@@ -9,6 +9,21 @@ $isLoggedIn = isset($_SESSION['user_id']);
 $username = $_SESSION['username'] ?? 'User';
 $role = $_SESSION['role'] ?? '';
 
+// Mirror the same role-based redirect as login.php
+function getDashboardUrl(string $role): string {
+    switch ($role) {
+        case 'admin':
+            return 'modules/admin.php';
+        case 'hr':
+        case 'ee':
+            return 'modules/evaluation/lms_sync.php';
+        default:
+            return 'modules/list.php';
+    }
+}
+
+$dashboardUrl = getDashboardUrl($role);
+
 $currentPeriod = getCurrentRecruitmentPeriod($pdo);
 $nextPeriod = getNextRecruitmentPeriod($pdo);
 ?>
@@ -30,7 +45,7 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
 
     <header class="landing-nav">
         <div class="brand">
-            Special Scientists <span>C.U.T.</span>
+            EE <span>C.U.T.</span>
         </div>
 
         <nav class="nav-actions">
@@ -39,7 +54,7 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
                     <?= htmlspecialchars($username); ?> · <?= htmlspecialchars($role); ?>
                 </span>
 
-                <a href="modules/dashboard.php" class="btn btn-primary">Go to Dashboard</a>
+                <a href="<?= $dashboardUrl ?>" class="btn btn-primary">Go to Dashboard</a>
                 <a href="auth/logout.php" class="btn btn-secondary">Logout</a>
             <?php else: ?>
                 <a href="auth/login.php" class="btn btn-secondary">Login</a>
@@ -61,7 +76,7 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
 
             <div class="hero-actions">
                 <?php if ($isLoggedIn): ?>
-                    <a href="modules/dashboard.php" class="btn btn-primary">Continue to Dashboard</a>
+                    <a href="<?= $dashboardUrl ?>" class="btn btn-primary">Continue to Dashboard</a>
                 <?php else: ?>
                     <a href="auth/login.php" class="btn btn-primary">Sign In</a>
                 <?php endif; ?>
@@ -131,22 +146,6 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
         </section>
     </main>
 
-    <section class="features">
-        <div class="feature-card">
-            <h3>Candidate Applications</h3>
-            <p>Create drafts, upload CVs, submit applications, and track progress through the recruitment process.</p>
-        </div>
-
-        <div class="feature-card">
-            <h3>Evaluator Review</h3>
-            <p>Evaluators can access assigned applications, review documents, and update application statuses.</p>
-        </div>
-
-        <div class="feature-card">
-            <h3>HR Management</h3>
-            <p>HR users can manage recruitment periods, courses, departments, faculties, reports, and system settings.</p>
-        </div>
-    </section>
 
 </div>
 

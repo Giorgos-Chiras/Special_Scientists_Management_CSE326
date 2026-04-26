@@ -11,8 +11,8 @@
         <a href="admin.php?page=recruitment" class="<?= in_array($currentPage, ['recruitment', 'faculties', 'departments', 'courses', 'periods', 'evaluator_assignments'], true) ? 'sidebar-link active' : 'sidebar-link'; ?>">Manage Recruitment</a>
         <a href="admin.php?page=system" class="<?= isActive('system', $currentPage); ?>">Configure System</a>
         <a href="admin.php?page=reports" class="<?= isActive('reports', $currentPage); ?>">Reports</a>
+        <a href="admin.php?page=admin_dashboard" class="<?= ($currentPage === 'admin_dashboard') ? 'sidebar-link active' : 'sidebar-link'; ?>">Account Settings</a>
 
         <a href="../auth/logout.php" class="btn btn-danger sidebar-logout js-confirm-logout">Logout</a>
     </nav>
-
 </aside>

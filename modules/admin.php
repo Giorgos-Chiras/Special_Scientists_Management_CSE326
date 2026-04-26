@@ -13,8 +13,10 @@ $allowedPages = [
         'evaluator_assignments',
         'applications',
         'application_view',
+        'admin_application_view',
         'system',
-        'reports'
+        'reports',
+    'admin_dashboard'
 ];
 
 if (!in_array($currentPage, $allowedPages, true)) {

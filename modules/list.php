@@ -387,12 +387,7 @@ if (empty($qualificationValues)) {
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="list-header">
-                        <div>
-                            <h2 class="page-title"><?= $isEvaluator ? 'Assigned Applications' : 'All Applications'; ?></h2>
-                            <p class="page-subtitle">
-                                <?= $isEvaluator ? 'Review your assigned applications and update their status.' : 'View all candidate applications.'; ?>
-                            </p>
-                        </div>
+
                     </div>
                 <?php endif; ?>
 
@@ -556,7 +551,8 @@ if (empty($qualificationValues)) {
                                         <div>
                                             <span>Period</span>
                                             <strong><?= htmlspecialchars($application['period_title'] ?? 'No period'); ?></strong>
-                                            <small><?= htmlspecialchars(formatFullDateTime($application['updated_at'] ?? $application['created_at'])); ?></small>
+                                            <small><?= htmlspecialchars(formatFullDateTime($application['updated_at'] ??
+                                                        formatFullDateTime($application['created_at']))); ?></small>
                                         </div>
 
                                         <?php if (!$isCandidate): ?>

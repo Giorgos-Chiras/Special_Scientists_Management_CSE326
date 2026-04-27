@@ -76,5 +76,6 @@ VALUES ('system_name', 'Special Scientists C.U.T.'),
        ('maintenance_mode', '0'),
        ('footer_text', 'Special Scientists Recruitment System');
 
-INSERT INTO lms_enrollments (user_id, course_id, moodle_access)
-VALUES
+INSERT INTO lms_enrollments (user_id, lms_access)
+VALUES (8, 1);
+        

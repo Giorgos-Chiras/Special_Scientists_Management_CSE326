@@ -129,6 +129,16 @@ $today = date('Y-m-d');
         </div>
     </div>
 
+    <?php if (!empty($errors)): ?>
+        <div
+                id="flash-data"
+                data-type="error"
+                data-title="Please fix the following"
+                data-text="<?= htmlspecialchars(implode('<br>', $errors)); ?>"
+                style="display:none"
+        ></div>
+    <?php endif; ?>
+
     <?php if ($action === 'create' || ($action === 'edit' && $editPeriod)): ?>
         <section class="search-card">
             <form method="POST" class="admin-form">

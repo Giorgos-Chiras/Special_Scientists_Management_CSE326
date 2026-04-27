@@ -154,13 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update') {
     ]);
 }
 
-/*
-|--------------------------------------------------------------------------
-| POST: update status
-|--------------------------------------------------------------------------
-| evaluator => only assigned applications
-| hr/admin  => any application
-*/
+//Update Status
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_status') {
     requireRole($user, ['evaluator', 'hr', 'admin']);
 
@@ -190,13 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_status') {
     ]);
 }
 
-/*
-|--------------------------------------------------------------------------
-| POST: delete application
-|--------------------------------------------------------------------------
-| candidate only
-| only own draft applications
-*/
+//DELETE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'delete') {
     requireRole($user, ['candidate']);
 

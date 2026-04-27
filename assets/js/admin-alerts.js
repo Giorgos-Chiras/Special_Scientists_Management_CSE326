@@ -53,14 +53,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            const title = deleteButton.getAttribute('data-title') || 'Are you sure?';
+            const text = deleteButton.getAttribute('data-text') || 'This action cannot be undone.';
+            const confirmText = deleteButton.getAttribute('data-confirm-text') || 'Yes';
+
             Swal.fire({
-                title: 'Delete this user?',
-                text: 'This action cannot be undone.',
+                title: title,
+                text: text,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: 'Yes, delete',
+                confirmButtonText: confirmText,
                 cancelButtonText: 'Cancel'
             }).then(function (result) {
                 if (result.isConfirmed) {

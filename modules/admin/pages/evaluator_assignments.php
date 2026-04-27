@@ -11,9 +11,9 @@ $errors = [];
 function setEvaluatorAssignmentFlash(string $type, string $title, string $text): void
 {
     $_SESSION['flash'] = [
-            'type'  => $type,
+            'type' => $type,
             'title' => $title,
-            'text'  => $text,
+            'text' => $text,
     ];
 }
 
@@ -24,8 +24,8 @@ function redirectToEvaluatorAssignments(): void
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment'])) {
-    $applicationId = (int) ($_POST['application_id'] ?? 0);
-    $evaluatorId   = (int) ($_POST['evaluator_id'] ?? 0);
+    $applicationId = (int)($_POST['application_id'] ?? 0);
+    $evaluatorId = (int)($_POST['evaluator_id'] ?? 0);
 
     if ($applicationId <= 0) {
         $errors[] = 'Application is required.';
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment']))
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_assignment'])) {
-    $id = (int) ($_POST['id'] ?? 0);
+    $id = (int)($_POST['id'] ?? 0);
 
     if ($id > 0) {
         deleteApplicationEvaluator($pdo, $id);
@@ -60,15 +60,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_assignment']))
 $applications = getAllApplications($pdo);
 $applicationById = [];
 foreach ($applications as $application) {
-    $applicationById[(int) $application['id']] = $application;
+    $applicationById[(int)$application['id']] = $application;
 }
 
 $evaluators = array_values(array_filter(
         getAllUsers($pdo),
-        static fn (array $user): bool => ($user['role'] ?? '') === 'evaluator'
+        static fn(array $user): bool => ($user['role'] ?? '') === 'evaluator'
 ));
 
-usort($evaluators, static fn (array $a, array $b): int => strcasecmp($a['username'], $b['username']));
+usort($evaluators, static fn(array $a, array $b): int => strcasecmp($a['username'], $b['username']));
 
 $assignments = getAllApplicationEvaluators($pdo);
 ?>
@@ -96,13 +96,14 @@ $assignments = getAllApplicationEvaluators($pdo);
     <?php endif; ?>
 
     <section class="search-card">
-        <form method="POST" action="admin.php?page=evaluator_assignments" class="admin-form js-validate-form" novalidate>
+        <form method="POST" action="admin.php?page=evaluator_assignments" class="admin-form js-validate-form"
+              novalidate>
             <div class="form-group">
                 <label for="application_id">Application</label>
                 <select id="application_id" name="application_id" class="admin-select" required>
                     <option value="">Select application</option>
                     <?php foreach ($applications as $application): ?>
-                        <option value="<?= (int) $application['id']; ?>">
+                        <option value="<?= (int)$application['id']; ?>">
                             <?= htmlspecialchars('#' . $application['id'] . ' - ' . $application['title'] . ' (' . $application['candidate_name'] . ')'); ?>
                         </option>
                     <?php endforeach; ?>
@@ -114,7 +115,7 @@ $assignments = getAllApplicationEvaluators($pdo);
                 <select id="evaluator_id" name="evaluator_id" class="admin-select" required>
                     <option value="">Select evaluator</option>
                     <?php foreach ($evaluators as $evaluator): ?>
-                        <option value="<?= (int) $evaluator['id']; ?>">
+                        <option value="<?= (int)$evaluator['id']; ?>">
                             <?= htmlspecialchars($evaluator['username'] . ' - ' . $evaluator['email']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -151,19 +152,27 @@ $assignments = getAllApplicationEvaluators($pdo);
                     </tr>
                 <?php else: ?>
                     <?php foreach ($assignments as $assignment): ?>
-                        <?php $assignedApplication = $applicationById[(int) $assignment['application_id']] ?? []; ?>
+                        <?php $assignedApplication = $applicationById[(int)$assignment['application_id']] ?? []; ?>
                         <tr>
-                            <td><?= (int) $assignment['id']; ?></td>
+                            <td><?= (int)$assignment['id']; ?></td>
                             <td><?= htmlspecialchars($assignment['application_title']); ?></td>
                             <td><?= htmlspecialchars($assignedApplication['candidate_name'] ?? 'Unknown candidate'); ?></td>
                             <td><?= htmlspecialchars($assignment['evaluator_name']); ?></td>
                             <td><?= htmlspecialchars(formatFullDateTime($assignment['assigned_at'])); ?></td>
                             <td>
                                 <div class="table-actions">
-                                    <form method="POST" action="admin.php?page=evaluator_assignments" class="inline-form">
-                                        <input type="hidden" name="id" value="<?= (int) $assignment['id']; ?>">
+                                    <form method="POST" action="admin.php?page=evaluator_assignments"
+                                          class="inline-form">
+                                        <input type="hidden" name="id" value="<?= (int)$assignment['id']; ?>">
                                         <input type="hidden" name="delete_assignment" value="1">
-                                        <button type="button" class="btn btn-danger btn-sm-custom js-delete-button">Remove</button>
+                                        <button
+                                                type="button"
+                                                class="btn btn-danger btn-sm-custom js-delete-button"
+                                                data-title="Remove assignment?"
+                                                data-text="This will unassign the evaluator from the application.",
+                                        >
+                                            Remove
+                                        </button>
                                     </form>
                                 </div>
                             </td>

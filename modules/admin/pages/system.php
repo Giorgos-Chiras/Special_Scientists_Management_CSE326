@@ -98,6 +98,17 @@ $settings = array_merge($defaultSettings, getSystemSettingsMap($pdo));
                 >
             </div>
 
+            <div class="form-group full-width">
+                <label for="footer_text">Footer Text</label>
+                <input
+                        type="text"
+                        id="footer_text"
+                        name="footer_text"
+                        value="<?= htmlspecialchars($settings['footer_text']); ?>"
+                        required
+                >
+            </div>
+
             <div class="form-group">
                 <label for="applications_open">Applications</label>
                 <select id="applications_open" name="applications_open" class="admin-select">
@@ -108,17 +119,6 @@ $settings = array_merge($defaultSettings, getSystemSettingsMap($pdo));
                         Closed
                     </option>
                 </select>
-            </div>
-
-            <div class="form-group full-width">
-                <label for="footer_text">Footer Text</label>
-                <input
-                        type="text"
-                        id="footer_text"
-                        name="footer_text"
-                        value="<?= htmlspecialchars($settings['footer_text']); ?>"
-                        required
-                >
             </div>
 
             <div class="form-actions">

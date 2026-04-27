@@ -8,15 +8,18 @@ require_once __DIR__ . '/utils/time_utils.php';
 $isLoggedIn = isset($_SESSION['user_id']);
 $username = $_SESSION['username'] ?? 'User';
 $role = $_SESSION['role'] ?? '';
+$avatarLetter = strtoupper(substr($username, 0, 1));
 
-// Mirror the same role-based redirect as login.php
-function getDashboardUrl(string $role): string {
+function getDashboardUrl(string $role): string
+{
     switch ($role) {
         case 'admin':
             return 'modules/admin.php';
+
         case 'hr':
         case 'ee':
             return 'modules/evaluation/lms_sync.php';
+
         default:
             return 'modules/list.php';
     }
@@ -50,11 +53,16 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
 
         <nav class="nav-actions">
             <?php if ($isLoggedIn): ?>
-                <span class="nav-user">
-                    <?= htmlspecialchars($username); ?> · <?= htmlspecialchars($role); ?>
-                </span>
+                <a class="protected-profile-link">
+                    <span class="protected-profile-avatar">
+                        <?= htmlspecialchars($avatarLetter); ?>
+                    </span>
+                    <span class="protected-profile-name">
+                        <?= htmlspecialchars($username); ?>
+                    </span>
+                </a>
 
-                <a href="<?= $dashboardUrl ?>" class="btn btn-primary">Go to Dashboard</a>
+                <a href="<?= htmlspecialchars($dashboardUrl); ?>" class="btn btn-primary">Go to Dashboard</a>
                 <a href="auth/logout.php" class="btn btn-secondary">Logout</a>
             <?php else: ?>
                 <a href="auth/login.php" class="btn btn-secondary">Login</a>
@@ -69,14 +77,12 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
                 Cyprus University of Technology · Recruitment Platform
             </div>
 
-            <h1>
-                Special Scientists Applications
-            </h1>
+            <h1>Special Scientists Applications</h1>
             <br>
 
             <div class="hero-actions">
                 <?php if ($isLoggedIn): ?>
-                    <a href="<?= $dashboardUrl ?>" class="btn btn-primary">Continue to Dashboard</a>
+                    <a href="<?= htmlspecialchars($dashboardUrl); ?>" class="btn btn-primary">Continue to Dashboard</a>
                 <?php else: ?>
                     <a href="auth/login.php" class="btn btn-primary">Sign In</a>
                 <?php endif; ?>
@@ -86,8 +92,6 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
                 <p class="welcome-box">
                     Welcome back,
                     <strong><?= htmlspecialchars($username); ?></strong>.
-                    You are logged in as
-                    <strong><?= htmlspecialchars($role); ?></strong>.
                 </p>
             <?php endif; ?>
         </section>
@@ -145,7 +149,6 @@ $nextPeriod = getNextRecruitmentPeriod($pdo);
             </div>
         </section>
     </main>
-
 
 </div>
 

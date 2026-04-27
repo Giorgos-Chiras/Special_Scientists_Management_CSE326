@@ -7,10 +7,14 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/crud/applications_crud.php';
+require_once __DIR__ . '/../includes/crud/application_evaluators_crud.php';
+require_once __DIR__ . '/../includes/crud/courses_crud.php';
+require_once __DIR__ . '/../includes/crud/recruitment_periods_crud.php';
+require_once __DIR__ . '/../includes/crud/system_settings_crud.php';
 require_once __DIR__ . '/../utils/status_utils.php';
 require_once __DIR__ . '/../utils/pdf_utils.php';
 require_once __DIR__ . '/../utils/time_utils.php';
-
 
 $pageTitle = 'Applications';
 $userId = (int) $_SESSION['user_id'];
@@ -36,25 +40,39 @@ if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
 }
 
-$settings = ['applications_open' => '0'];
-
-try {
-    $stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $settings[$row['setting_key']] = $row['setting_value'];
+function buildQualificationsString(array|string|null $input): string
+{
+    if (is_array($input)) {
+        $items = array_filter(array_map('trim', $input));
+        return implode("\n", array_map(fn($item) => '* ' . ltrim($item, '* '), $items));
     }
-} catch (Throwable $e) {
+
+    return trim((string) $input);
 }
 
-$periodStmt = $pdo->prepare("
-    SELECT id, title, start_date, end_date
-    FROM recruitment_periods
-    WHERE CURDATE() BETWEEN start_date AND end_date
-    ORDER BY start_date DESC
-    LIMIT 1
-");
-$periodStmt->execute();
-$activePeriod = $periodStmt->fetch(PDO::FETCH_ASSOC);
+function parseQualificationsForForm(?string $qualifications): array
+{
+    $qualifications = trim((string) $qualifications);
+
+    if ($qualifications === '') {
+        return [''];
+    }
+
+    return array_values(array_filter(array_map(function ($line) {
+        return trim(ltrim(trim($line), '* '));
+    }, explode("\n", $qualifications))));
+}
+
+try {
+    $settings = array_merge(
+            ['applications_open' => '0'],
+            getSystemSettingsMap($pdo)
+    );
+} catch (Throwable $e) {
+    $settings = ['applications_open' => '0'];
+}
+
+$activePeriod = getCurrentRecruitmentPeriod($pdo);
 
 $systemApplicationsOpen = ($settings['applications_open'] ?? '0') === '1';
 $applicationsOpen = $systemApplicationsOpen && $activePeriod;
@@ -63,18 +81,7 @@ if ((!$isCandidate || !$applicationsOpen) && in_array($action, ['create', 'edit'
     $action = 'list';
 }
 
-$courses = $pdo->query("
-    SELECT
-        c.id,
-        c.name AS course_name,
-        c.code AS course_code,
-        d.name AS department_name,
-        f.name AS faculty_name
-    FROM courses c
-    INNER JOIN departments d ON c.department_id = d.id
-    INNER JOIN faculties f ON d.faculty_id = f.id
-    ORDER BY f.name ASC, d.name ASC, c.name ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+$courses = getCoursesForApplicationForm($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application']) && $isCandidate) {
     if (!$applicationsOpen) {
@@ -84,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application']) &
     $courseId = (int) ($_POST['course_id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
     $coverLetter = trim($_POST['cover_letter'] ?? '');
-    $qualifications = trim($_POST['qualifications'] ?? '');
+    $qualifications = buildQualificationsString($_POST['qualifications'] ?? []);
     $submitType = $_POST['submit_type'] ?? 'draft';
     $status = $submitType === 'submit' ? 'submitted' : 'draft';
 
@@ -106,44 +113,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application']) &
         }
     }
 
-    $cvData = uploadCv($errors, $uploadDir, $uploadWebPath);
-
+    $cvData = uploadCv($errors);
     if (empty($errors)) {
-        $stmt = $pdo->prepare("
-            INSERT INTO applications (
-                user_id,
-                course_id,
-                period_id,
-                title,
-                status,
-                cover_letter,
-                qualifications,
-                cv_file_path,
-                cv_original_name
-            ) VALUES (
-                :user_id,
-                :course_id,
-                :period_id,
-                :title,
-                :status,
-                :cover_letter,
-                :qualifications,
-                :cv_file_path,
-                :cv_original_name
-            )
-        ");
-
-        $stmt->execute([
-                ':user_id' => $userId,
-                ':course_id' => $courseId,
-                ':period_id' => (int) $activePeriod['id'],
-                ':title' => $title,
-                ':status' => $status,
-                ':cover_letter' => $coverLetter,
-                ':qualifications' => $qualifications,
-                ':cv_file_path' => $cvData['path'],
-                ':cv_original_name' => $cvData['original_name'],
-        ]);
+        createApplication(
+                $pdo,
+                $userId,
+                $courseId,
+                (int) $activePeriod['id'],
+                $title,
+                $status,
+                $coverLetter,
+                $qualifications,
+                $cvData['path'],
+                $cvData['original_name']
+        );
 
         $_SESSION['flash'] = [
                 'type' => 'success',
@@ -163,17 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application']) &
 if ($action === 'edit' && isset($_GET['id']) && $isCandidate) {
     $id = (int) $_GET['id'];
 
-    $stmt = $pdo->prepare("
-        SELECT *
-        FROM applications
-        WHERE id = :id AND user_id = :user_id
-        LIMIT 1
-    ");
-    $stmt->execute([
-            ':id' => $id,
-            ':user_id' => $userId
-    ]);
-    $editApplication = $stmt->fetch(PDO::FETCH_ASSOC);
+    $editApplication = getApplicationByIdForCandidate($pdo, $id, $userId);
 
     if (!$editApplication) {
         $_SESSION['flash'] = [
@@ -181,6 +154,7 @@ if ($action === 'edit' && isset($_GET['id']) && $isCandidate) {
                 'title' => 'Application not found',
                 'text' => 'The selected application could not be found.',
         ];
+
         header('Location: list.php');
         exit;
     }
@@ -191,6 +165,7 @@ if ($action === 'edit' && isset($_GET['id']) && $isCandidate) {
                 'title' => 'Cannot edit',
                 'text' => 'Only draft applications can be edited.',
         ];
+
         header('Location: list.php');
         exit;
     }
@@ -205,21 +180,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_application'])
     $courseId = (int) ($_POST['course_id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
     $coverLetter = trim($_POST['cover_letter'] ?? '');
-    $qualifications = trim($_POST['qualifications'] ?? '');
+    $qualifications = buildQualificationsString($_POST['qualifications'] ?? []);
     $submitType = $_POST['submit_type'] ?? 'draft';
     $status = $submitType === 'submit' ? 'submitted' : 'draft';
 
-    $stmt = $pdo->prepare("
-        SELECT *
-        FROM applications
-        WHERE id = :id AND user_id = :user_id
-        LIMIT 1
-    ");
-    $stmt->execute([
-            ':id' => $id,
-            ':user_id' => $userId
-    ]);
-    $existingApplication = $stmt->fetch(PDO::FETCH_ASSOC);
+    $existingApplication = getApplicationByIdForCandidate($pdo, $id, $userId);
 
     if (!$existingApplication || $existingApplication['status'] !== 'draft') {
         $errors[] = 'Only draft applications can be updated.';
@@ -243,32 +208,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_application'])
         }
     }
 
-    $cvData = uploadCv($errors, $uploadDir, $uploadWebPath, $existingApplication ?: null);
-
+    $cvData = uploadCv($errors, $existingApplication);
     if (empty($errors)) {
-        $stmt = $pdo->prepare("
-            UPDATE applications
-            SET course_id = :course_id,
-                title = :title,
-                status = :status,
-                cover_letter = :cover_letter,
-                qualifications = :qualifications,
-                cv_file_path = :cv_file_path,
-                cv_original_name = :cv_original_name
-            WHERE id = :id AND user_id = :user_id
-        ");
-
-        $stmt->execute([
-                ':course_id' => $courseId,
-                ':title' => $title,
-                ':status' => $status,
-                ':cover_letter' => $coverLetter,
-                ':qualifications' => $qualifications,
-                ':cv_file_path' => $cvData['path'],
-                ':cv_original_name' => $cvData['original_name'],
-                ':id' => $id,
-                ':user_id' => $userId,
-        ]);
+        updateCandidateApplication(
+                $pdo,
+                $id,
+                $userId,
+                $courseId,
+                $title,
+                $status,
+                $coverLetter,
+                $qualifications,
+                $cvData['path'],
+                $cvData['original_name']
+        );
 
         $_SESSION['flash'] = [
                 'type' => 'success',
@@ -298,39 +251,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_application'])
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status']) && $isEvaluator) {
     $applicationId = (int) ($_POST['id'] ?? 0);
     $newStatus = $_POST['status'] ?? '';
-
     $allowedStatuses = ['under_review', 'approved', 'rejected'];
 
-    if ($applicationId > 0 && in_array($newStatus, $allowedStatuses, true)) {
-        $stmt = $pdo->prepare("
-            SELECT ae.id
-            FROM application_evaluators ae
-            WHERE ae.application_id = :application_id
-              AND ae.evaluator_id = :evaluator_id
-            LIMIT 1
-        ");
-        $stmt->execute([
-                ':application_id' => $applicationId,
-                ':evaluator_id' => $userId
-        ]);
+    if (
+            $applicationId > 0
+            && in_array($newStatus, $allowedStatuses, true)
+            && evaluatorCanAccessApplication($pdo, $applicationId, $userId)
+    ) {
+        updateApplicationStatus($pdo, $applicationId, $newStatus);
 
-        if ($stmt->fetch()) {
-            $updateStmt = $pdo->prepare("
-                UPDATE applications
-                SET status = :status
-                WHERE id = :id
-            ");
-            $updateStmt->execute([
-                    ':status' => $newStatus,
-                    ':id' => $applicationId
-            ]);
-
-            $_SESSION['flash'] = [
-                    'type' => 'success',
-                    'title' => 'Status updated',
-                    'text' => 'The application status was updated successfully.',
-            ];
-        }
+        $_SESSION['flash'] = [
+                'type' => 'success',
+                'title' => 'Status updated',
+                'text' => 'The application status was updated successfully.',
+        ];
     }
 
     header('Location: list.php');
@@ -341,40 +275,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_application'])
     $id = (int) ($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("
-            SELECT cv_file_path
-            FROM applications
-            WHERE id = :id AND user_id = :user_id
-            LIMIT 1
-        ");
-        $stmt->execute([
-                ':id' => $id,
-                ':user_id' => $userId
-        ]);
-        $applicationToDelete = $stmt->fetch(PDO::FETCH_ASSOC);
+        $applicationToDelete = getApplicationByIdForCandidate($pdo, $id, $userId);
 
-        if ($applicationToDelete) {
+        if ($applicationToDelete && $applicationToDelete['status'] === 'draft') {
             if (!empty($applicationToDelete['cv_file_path'])) {
                 $filePath = realpath(__DIR__ . '/../' . str_replace('../', '', $applicationToDelete['cv_file_path']));
                 $uploadBase = realpath($uploadDir);
 
-                if ($filePath && $uploadBase && str_starts_with($filePath, $uploadBase) && file_exists($filePath)) {
+                if (
+                        $filePath
+                        && $uploadBase
+                        && strpos($filePath, $uploadBase) === 0
+                        && file_exists($filePath)
+                ) {
                     unlink($filePath);
                 }
             }
 
-            $pdo->prepare("
-                DELETE FROM applications
-                WHERE id = :id AND user_id = :user_id
-            ")->execute([
-                    ':id' => $id,
-                    ':user_id' => $userId
-            ]);
+            deleteApplication($pdo, $id, $userId);
 
             $_SESSION['flash'] = [
                     'type' => 'success',
                     'title' => 'Application deleted',
-                    'text' => 'Your application was deleted successfully.',
+                    'text' => 'Your draft application was deleted successfully.',
             ];
         }
     }
@@ -384,103 +307,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_application'])
 }
 
 if ($isCandidate) {
-    $stmt = $pdo->prepare("
-        SELECT
-            a.id,
-            a.title,
-            a.status,
-            a.cover_letter,
-            a.qualifications,
-            a.cv_file_path,
-            a.cv_original_name,
-            a.created_at,
-            a.updated_at,
-            c.name AS course_name,
-            c.code AS course_code,
-            d.name AS department_name,
-            f.name AS faculty_name,
-            rp.title AS period_title
-        FROM applications a
-        INNER JOIN courses c ON a.course_id = c.id
-        INNER JOIN departments d ON c.department_id = d.id
-        INNER JOIN faculties f ON d.faculty_id = f.id
-        INNER JOIN recruitment_periods rp ON a.period_id = rp.id
-        WHERE a.user_id = :user_id
-        ORDER BY a.id DESC
-    ");
-    $stmt->execute([':user_id' => $userId]);
+    $applications = getApplicationsByUserId($pdo, $userId);
 } elseif ($isEvaluator) {
-    $stmt = $pdo->prepare("
-        SELECT
-            a.id,
-            a.title,
-            a.status,
-            a.cover_letter,
-            a.qualifications,
-            a.cv_file_path,
-            a.cv_original_name,
-            a.created_at,
-            a.updated_at,
-            u.username AS candidate_name,
-            u.email AS candidate_email,
-            c.name AS course_name,
-            c.code AS course_code,
-            d.name AS department_name,
-            f.name AS faculty_name,
-            rp.title AS period_title
-        FROM application_evaluators ae
-        INNER JOIN applications a ON ae.application_id = a.id
-        INNER JOIN users u ON a.user_id = u.id
-        INNER JOIN courses c ON a.course_id = c.id
-        INNER JOIN departments d ON c.department_id = d.id
-        INNER JOIN faculties f ON d.faculty_id = f.id
-        INNER JOIN recruitment_periods rp ON a.period_id = rp.id
-        WHERE ae.evaluator_id = :evaluator_id
-        ORDER BY a.id DESC
-    ");
-    $stmt->execute([':evaluator_id' => $userId]);
+    $applications = getApplicationsForEvaluator($pdo, $userId);
 } else {
-    $stmt = $pdo->prepare("
-        SELECT
-            a.id,
-            a.title,
-            a.status,
-            a.cover_letter,
-            a.qualifications,
-            a.cv_file_path,
-            a.cv_original_name,
-            a.created_at,
-            a.updated_at,
-            u.username AS candidate_name,
-            u.email AS candidate_email,
-            c.name AS course_name,
-            c.code AS course_code,
-            d.name AS department_name,
-            f.name AS faculty_name,
-            rp.title AS period_title
-        FROM applications a
-        INNER JOIN users u ON a.user_id = u.id
-        INNER JOIN courses c ON a.course_id = c.id
-        INNER JOIN departments d ON c.department_id = d.id
-        INNER JOIN faculties f ON d.faculty_id = f.id
-        INNER JOIN recruitment_periods rp ON a.period_id = rp.id
-        ORDER BY a.id DESC
-    ");
-    $stmt->execute();
+    $applications = getAllApplications($pdo);
 }
 
-$applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$qualificationValues = [''];
+
+if ($action === 'edit' && $editApplication) {
+    $qualificationValues = parseQualificationsForForm($editApplication['qualifications'] ?? '');
+} elseif (!empty($_POST['qualifications'])) {
+    $qualificationValues = is_array($_POST['qualifications'])
+            ? array_values(array_filter(array_map('trim', $_POST['qualifications'])))
+            : parseQualificationsForForm($_POST['qualifications']);
+}
+
+if (empty($qualificationValues)) {
+    $qualificationValues = [''];
+}
 ?>
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Applications</title>
-        <link rel="stylesheet" href="../assets/css/style.css">
-        <link rel="stylesheet" href="../assets/css/list.css?v=<?= filemtime(__DIR__ . '/../assets/css/list.css'); ?>">
-        <link rel="stylesheet" href="../assets/css/admin.css">
-        <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= filemtime(__DIR__ . '/../assets/css/dashboard.css'); ?>">
-    </head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Applications</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/list.css?v=<?= filemtime(__DIR__ . '/../assets/css/list.css'); ?>">
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= filemtime(__DIR__ . '/../assets/css/dashboard.css'); ?>">
+
+</head>
 <body>
 
 <div class="list-layout">
@@ -529,12 +387,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="list-header">
-                        <div>
-                            <h2 class="page-title"><?= $isEvaluator ? 'Assigned Applications' : 'All Applications'; ?></h2>
-                            <p class="page-subtitle">
-                                <?= $isEvaluator ? 'Review your assigned applications and update their status.' : 'View all candidate applications.'; ?>
-                            </p>
-                        </div>
+
                     </div>
                 <?php endif; ?>
 
@@ -590,12 +443,34 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                             <div class="form-group full-width">
                                 <label for="cover_letter">Cover Letter</label>
-                                <textarea id="cover_letter" name="cover_letter" rows="6"><?= htmlspecialchars($action === 'edit' ? ($editApplication['cover_letter'] ?? '') : ($_POST['cover_letter'] ?? '')); ?></textarea>
+                                <textarea
+                                        id="cover_letter"
+                                        name="cover_letter"
+                                        class="cover-letter-box"
+                                ><?= htmlspecialchars($action === 'edit' ? ($editApplication['cover_letter'] ?? '') : ($_POST['cover_letter'] ?? '')); ?></textarea>
                             </div>
 
                             <div class="form-group full-width">
-                                <label for="qualifications">Qualifications</label>
-                                <textarea id="qualifications" name="qualifications" rows="5"><?= htmlspecialchars($action === 'edit' ? ($editApplication['qualifications'] ?? '') : ($_POST['qualifications'] ?? '')); ?></textarea>
+                                <label>Qualifications</label>
+
+                                <div id="qualification-builder" class="qualification-builder">
+                                    <?php foreach ($qualificationValues as $qualification): ?>
+                                        <div class="qualification-row">
+                                            <input
+                                                    type="text"
+                                                    name="qualifications[]"
+                                                    value="<?= htmlspecialchars($qualification); ?>"
+                                                    placeholder="Enter qualification"
+                                            >
+
+                                            <div class="qualification-actions">
+                                                <button type="button" class="qualification-add-btn">+</button>
+                                                <button type="button" class="qualification-remove-btn">−</button>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+
                             </div>
 
                             <div class="form-group full-width">
@@ -656,38 +531,43 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php if (!$isCandidate): ?>
                                             <div>
                                                 <span>Candidate</span>
-                                                <strong><?= htmlspecialchars($application['candidate_name']); ?></strong>
-                                                <small><?= htmlspecialchars($application['candidate_email']); ?></small>
+                                                <strong><?= htmlspecialchars($application['candidate_name'] ?? 'Unknown candidate'); ?></strong>
+                                                <small><?= htmlspecialchars($application['candidate_email'] ?? 'No email'); ?></small>
                                             </div>
                                         <?php endif; ?>
 
                                         <div>
                                             <span>Course</span>
-                                            <strong><?= htmlspecialchars($application['course_name']); ?></strong>
+                                            <strong><?= htmlspecialchars($application['course_name'] ?? 'No course'); ?></strong>
                                             <small><?= htmlspecialchars($application['course_code'] ?? 'No code'); ?></small>
                                         </div>
 
                                         <div>
                                             <span>Department</span>
-                                            <strong><?= htmlspecialchars($application['department_name']); ?></strong>
-                                            <small><?= htmlspecialchars($application['faculty_name']); ?></small>
+                                            <strong><?= htmlspecialchars($application['department_name'] ?? 'No department'); ?></strong>
+                                            <small><?= htmlspecialchars($application['faculty_name'] ?? 'No faculty'); ?></small>
                                         </div>
 
                                         <div>
                                             <span>Period</span>
-                                            <strong><?= htmlspecialchars($application['period_title']); ?></strong>
-                                            <small><?= htmlspecialchars(formatFullDateTime( $application['updated_at'] ?? formatFullDateTime($application['created_at']))); ?></small>
+                                            <strong><?= htmlspecialchars($application['period_title'] ?? 'No period'); ?></strong>
+                                            <small><?= htmlspecialchars(formatFullDateTime($application['updated_at'] ??
+                                                        formatFullDateTime($application['created_at']))); ?></small>
                                         </div>
 
                                         <?php if (!$isCandidate): ?>
                                             <div>
                                                 <span>Cover Letter</span>
-                                                <strong><?= !empty($application['cover_letter']) ? 'Provided' : 'Not provided'; ?></strong>
+                                                <div class="fixed-text-panel">
+                                                    <p><?= nl2br(htmlspecialchars($application['cover_letter'] ?: 'No cover letter provided.')); ?></p>
+                                                </div>
                                             </div>
 
                                             <div>
                                                 <span>Qualifications</span>
-                                                <strong><?= !empty($application['qualifications']) ? 'Provided' : 'Not provided'; ?></strong>
+                                                <div class="fixed-text-panel">
+                                                    <p><?= nl2br(htmlspecialchars($application['qualifications'] ?: 'No qualifications provided.')); ?></p>
+                                                </div>
                                             </div>
                                         <?php endif; ?>
                                     </div>
@@ -711,9 +591,9 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <?php endif; ?>
 
                                     <div class="application-admin-actions">
-                                        <?php if ($isEvaluator || $isHr): ?>
-                                            <a href="application_view.php?id=<?= (int) $application['id']; ?>" class="btn btn-primary btn-sm-custom">View</a>
-                                        <?php endif; ?>
+                                        <a href="application_view.php?id=<?= (int) $application['id']; ?>" class="btn btn-primary btn-sm-custom">
+                                            View
+                                        </a>
 
                                         <?php if ($isCandidate && $application['status'] === 'draft' && $applicationsOpen): ?>
                                             <a href="list.php?action=edit&id=<?= (int) $application['id']; ?>" class="btn btn-secondary btn-sm-custom">Edit</a>
@@ -723,11 +603,13 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <a href="<?= htmlspecialchars($application['cv_file_path']); ?>" target="_blank" class="btn btn-secondary btn-sm-custom">View CV</a>
                                         <?php endif; ?>
 
-                                        <?php if ($isCandidate): ?>
+                                        <?php if ($isCandidate && $application['status'] === 'draft'): ?>
                                             <form method="POST" action="list.php" class="inline-form">
                                                 <input type="hidden" name="id" value="<?= (int) $application['id']; ?>">
                                                 <input type="hidden" name="delete_application" value="1">
-                                                <button type="button" class="btn btn-danger btn-sm-custom js-delete-button">Delete</button>
+                                                <button type="submit" class="btn btn-danger btn-sm-custom">
+                                                    Delete
+                                                </button>
                                             </form>
                                         <?php endif; ?>
                                     </div>
@@ -741,4 +623,53 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </main>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const builder = document.getElementById('qualification-builder');
+
+        function createRow(value = '') {
+            const row = document.createElement('div');
+            row.className = 'qualification-row';
+
+            row.innerHTML = `
+            <input type="text" name="qualifications[]" value="${value}" placeholder="Enter qualification">
+            <div class="qualification-actions">
+                <button type="button" class="qualification-add-btn">+</button>
+                <button type="button" class="qualification-remove-btn">−</button>
+            </div>
+        `;
+
+            row.querySelector('.qualification-add-btn').onclick = () => {
+                builder.appendChild(createRow());
+            };
+
+            row.querySelector('.qualification-remove-btn').onclick = () => {
+                if (builder.children.length > 1) {
+                    row.remove();
+                } else {
+                    row.querySelector('input').value = '';
+                }
+            };
+
+            return row;
+        }
+
+        document.querySelectorAll('.qualification-row').forEach(row => {
+            row.querySelector('.qualification-add-btn').onclick = () => {
+                builder.appendChild(createRow());
+            };
+
+            row.querySelector('.qualification-remove-btn').onclick = () => {
+                if (builder.children.length > 1) {
+                    row.remove();
+                } else {
+                    row.querySelector('input').value = '';
+                }
+            };
+        });
+    });
+</script>
+
 <?php require_once __DIR__ . '/../includes/protected_footer.php'; ?>
+</body>
+</html>

@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/db.php';
+require_once '../includes/crud/users_crud.php';
 
 $errors = [];
 $username = '';
@@ -33,33 +34,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Passwords do not match.';
     }
 
-    if (empty($errors)) {
-        $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username OR email = :email LIMIT 1');
-        $stmt->execute([
-                ':username' => $username,
-                ':email' => $email
-        ]);
-
-        if ($stmt->fetch()) {
-            $errors[] = 'Username or email already in use.';
-        }
+    if (empty($errors) && userExistsByUsernameOrEmail($pdo, $username, $email)) {
+        $errors[] = 'Username or email already in use.';
     }
 
     if (empty($errors)) {
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-
-        $stmt = $pdo->prepare('
-            INSERT INTO users (username, email, password_hash, role)
-            VALUES (:username, :email, :password_hash, :role)
-        ');
-
-        $stmt->execute([
-                ':username' => $username,
-                ':email' => $email,
-                ':password_hash' => $passwordHash,
-                ':role' => 'candidate'
-        ]);
-
+        createUser($pdo, $username, $email, $passwordHash);
         header('Location: login.php?registered=1');
         exit;
     }
@@ -71,104 +52,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account</title>
-
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
-
-    <style>
-        .auth-logo {
-            text-align: center;
-            margin-bottom: 18px;
-            font-size: 26px;
-            font-weight: 700;
-            color: #0f172a;
-        }
-
-        .auth-logo span {
-            color: #2563eb;
-        }
-
-        .auth-card {
-            max-width: 420px;
-            margin: 0 auto;
-        }
-    </style>
 </head>
 <body>
 
-<div class="auth-page">
-    <div class="auth-wrapper">
-        <div class="auth-card">
-            <div class="auth-logo">
+<div class="auth-page modern-auth-page">
+    <div class="auth-split">
+
+        <section class="auth-showcase">
+            <a href="../index.php" class="auth-brand">
                 EE <span>C.U.T.</span>
+            </a>
+            <div class="auth-showcase-content">
+                <h1>Create your account.</h1>
             </div>
+        </section>
 
-            <h1 class="auth-title">Create account</h1>
-            <p class="auth-subtitle">Sign up to start your application</p>
+        <section class="auth-form-panel">
+            <div class="auth-card modern-auth-card">
 
-            <?php if (!empty($errors)): ?>
-                <div class="error">
-                    <ul>
-                        <?php foreach ($errors as $error): ?>
-                            <li><?= htmlspecialchars($error); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
-
-            <form method="POST" action="" class="auth-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input
-                            type="text"
-                            id="username"
-                            name="username"
-                            value="<?= htmlspecialchars($username); ?>"
-                            required
-                    >
+                <div class="auth-logo">
+                    EE <span>C.U.T.</span>
                 </div>
 
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value="<?= htmlspecialchars($email); ?>"
-                            required
-                    >
-                </div>
+                <h1 class="auth-title">Create account</h1>
+                <p class="auth-subtitle">Fill in your details to get started.</p>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            required
-                    >
-                </div>
+                <?php if (!empty($errors)): ?>
+                    <div class="error">
+                        <ul>
+                            <?php foreach ($errors as $error): ?>
+                                <li><?= htmlspecialchars($error); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
 
-                <div class="form-group">
-                    <label for="confirm_password">Confirm Password</label>
-                    <input
-                            type="password"
-                            id="confirm_password"
-                            name="confirm_password"
-                            required
-                    >
-                </div>
+                <form method="POST" action="" class="auth-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                value="<?= htmlspecialchars($username); ?>"
+                                placeholder="Your name"
+                                required
+                        >
+                    </div>
 
-                <button type="submit" class="btn btn-primary auth-submit">
-                    Sign up
-                </button>
-            </form>
+                    <div class="form-group">
+                        <label for="email">Email address</label>
+                        <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value="<?= htmlspecialchars($email); ?>"
+                                placeholder="you@example.com"
+                                required
+                        >
+                    </div>
 
-            <p class="auth-link">
-                Already have an account?
-                <a href="login.php">Sign in</a>
-            </p>
-        </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="At least 8 characters"
+                                required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm password</label>
+                        <input
+                                type="password"
+                                id="confirm_password"
+                                name="confirm_password"
+                                placeholder="Repeat your password"
+                                required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary auth-submit">
+                        Create account
+                    </button>
+                </form>
+
+                <p class="auth-link">
+                    Already have an account?
+                    <a href="login.php">Sign in</a>
+                </p>
+
+            </div>
+        </section>
+
     </div>
 </div>
 

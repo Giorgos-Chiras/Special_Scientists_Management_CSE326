@@ -1,5 +1,34 @@
 <?php
 session_start();
+
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/crud/recruitment_periods_crud.php';
+require_once __DIR__ . '/utils/time_utils.php';
+
+$isLoggedIn = isset($_SESSION['user_id']);
+$username = $_SESSION['username'] ?? 'User';
+$role = $_SESSION['role'] ?? '';
+$avatarLetter = strtoupper(substr($username, 0, 1));
+
+function getDashboardUrl(string $role): string
+{
+    switch ($role) {
+        case 'admin':
+            return 'modules/admin.php';
+
+        case 'hr':
+        case 'ee':
+            return 'modules/evaluation/lms_sync.php';
+
+        default:
+            return 'modules/list.php';
+    }
+}
+
+$dashboardUrl = getDashboardUrl($role);
+
+$currentPeriod = getCurrentRecruitmentPeriod($pdo);
+$nextPeriod = getNextRecruitmentPeriod($pdo);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -9,62 +38,117 @@ session_start();
     <title>Special Scientists Management</title>
 
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/landing.css">
-
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <link rel="stylesheet" href="assets/css/list.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
 
-<div class="landing-wrapper">
+<div class="landing-page">
 
-    <div class="top-brand">
-        Special Scientists <strong>C.U.T.</strong>
-    </div>
+    <header class="landing-nav">
+        <div class="brand">
+            EE <span>C.U.T.</span>
+        </div>
 
-    <div class="landing-hero">
-        <div class="landing-card">
+        <nav class="nav-actions">
+            <?php if ($isLoggedIn): ?>
+                <a class="protected-profile-link">
+                    <span class="protected-profile-avatar">
+                        <?= htmlspecialchars($avatarLetter); ?>
+                    </span>
+                    <span class="protected-profile-name">
+                        <?= htmlspecialchars($username); ?>
+                    </span>
+                </a>
 
-            <h1>Special Scientists Management</h1>
+                <a href="<?= htmlspecialchars($dashboardUrl); ?>" class="btn btn-primary">Go to Dashboard</a>
+                <a href="auth/logout.php" class="btn btn-secondary">Logout</a>
+            <?php else: ?>
+                <a href="auth/login.php" class="btn btn-secondary">Login</a>
+                <a href="auth/register.php" class="btn btn-primary">Register</a>
+            <?php endif; ?>
+        </nav>
+    </header>
 
-            <p class="landing-text">
-                A simple web application for managing special scientists,
-                applications, and user access for the Cyprus University of Technology.
-            </p>
-
-            <div class="landing-actions">
-
-                <?php if (isset($_SESSION['user_id'])): ?>
-
-                    <a href="modules/dashboard.php" class = "secondary-btn">
-                        Dashboard
-                    </a>
-
-                    <a href="modules/list.php" class="secondary-btn">
-                        Applications
-                    </a>
-
-                    <a href="auth/logout.php" class="secondary-btn">
-                        Logout
-                    </a>
-
-                <?php else: ?>
-
-                 <a href="auth/login.php">
-                        <button type="button" class="btn btn-primary">Login</button>
-                    </a>
-                <?php endif; ?>
-
+    <main class="hero">
+        <section class="hero-content">
+            <div class="badge">
+                Cyprus University of Technology · Recruitment Platform
             </div>
 
-            <?php if (isset($_SESSION['user_id'])): ?>
+            <h1>Special Scientists Applications</h1>
+            <br>
+
+            <div class="hero-actions">
+                <?php if ($isLoggedIn): ?>
+                    <a href="<?= htmlspecialchars($dashboardUrl); ?>" class="btn btn-primary">Continue to Dashboard</a>
+                <?php else: ?>
+                    <a href="auth/login.php" class="btn btn-primary">Sign In</a>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($isLoggedIn): ?>
                 <p class="welcome-box">
-                    Logged in as
-                    <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong>
-                    (<?php echo htmlspecialchars($_SESSION['role']); ?>)
+                    Welcome back,
+                    <strong><?= htmlspecialchars($username); ?></strong>.
                 </p>
             <?php endif; ?>
+        </section>
 
-        </div>
-    </div>
+        <section class="hero-panel">
+            <div class="dashboard-card">
+                <div class="card-top">
+                    <div class="card-title">Recruitment Periods</div>
+                </div>
+
+                <div class="recruitment-period-table">
+                    <table class="admin-table">
+                        <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Status</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        <?php if ($currentPeriod): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($currentPeriod['title']); ?></td>
+                                <td>
+                                    <span class="status-pill status-approved">Current</span>
+                                </td>
+                                <td><?= htmlspecialchars(formatDate($currentPeriod['start_date'])); ?></td>
+                                <td><?= htmlspecialchars(formatDate($currentPeriod['end_date'])); ?></td>
+                            </tr>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="4">No active period.</td>
+                            </tr>
+                        <?php endif; ?>
+
+                        <?php if ($nextPeriod): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($nextPeriod['title']); ?></td>
+                                <td>
+                                    <span class="status-pill status-submitted">Next</span>
+                                </td>
+                                <td><?= htmlspecialchars(formatDate($nextPeriod['start_date'])); ?></td>
+                                <td><?= htmlspecialchars(formatDate($nextPeriod['end_date'])); ?></td>
+                            </tr>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="4">No upcoming period.</td>
+                            </tr>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
 
 </div>
 

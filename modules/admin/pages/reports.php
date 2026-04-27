@@ -1,70 +1,86 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
 require_once __DIR__ . '/../../../utils/status_utils.php';
+require_once __DIR__ . '/../../../includes/crud/applications_crud.php';
+require_once __DIR__ . '/../../../includes/crud/courses_crud.php';
+require_once __DIR__ . '/../../../includes/crud/recruitment_periods_crud.php';
+require_once __DIR__ . '/../../../includes/crud/users_crud.php';
 
-$totalApplications = (int) $pdo->query("SELECT COUNT(*) FROM applications")->fetchColumn();
-$totalCandidates   = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('candidate', 'ee')")->fetchColumn();
-$totalCourses      = (int) $pdo->query("SELECT COUNT(*) FROM courses")->fetchColumn();
-$totalPeriods      = (int) $pdo->query("SELECT COUNT(*) FROM recruitment_periods")->fetchColumn();
+function incrementReportStat(array &$stats, string $key, ?string $label = null): void
+{
+    if (!isset($stats[$key])) {
+        $stats[$key] = [
+                'key'   => $key,
+                'label' => $label ?? $key,
+                'total' => 0,
+        ];
+    }
 
-$statusStats = $pdo->query("
-    SELECT status, COUNT(*) AS total
-    FROM applications
-    GROUP BY status
-    ORDER BY total DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+    $stats[$key]['total']++;
+}
 
-$courseStats = $pdo->query("
-    SELECT c.name AS course_name, COUNT(a.id) AS total
-    FROM applications a
-    INNER JOIN courses c ON a.course_id = c.id
-    GROUP BY c.id, c.name
-    ORDER BY total DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+function sortReportStats(array $stats): array
+{
+    usort($stats, static function (array $a, array $b): int {
+        return ((int) $b['total'] <=> (int) $a['total'])
+                ?: strcasecmp((string) $a['label'], (string) $b['label']);
+    });
 
-$departmentStats = $pdo->query("
-    SELECT d.name AS department_name, COUNT(a.id) AS total
-    FROM applications a
-    INNER JOIN courses c     ON a.course_id     = c.id
-    INNER JOIN departments d ON c.department_id = d.id
-    GROUP BY d.id, d.name
-    ORDER BY total DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+    return $stats;
+}
 
-$periodStats = $pdo->query("
-    SELECT rp.title AS period_title, COUNT(a.id) AS total
-    FROM applications a
-    INNER JOIN recruitment_periods rp ON a.period_id = rp.id
-    GROUP BY rp.id, rp.title
-    ORDER BY total DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+$applications = getAllApplications($pdo);
+$users        = getAllUsers($pdo);
+$courses      = getAllCourses($pdo);
+$periods      = getAllRecruitmentPeriods($pdo);
 
-$recentApplications = $pdo->query("
-    SELECT
-        a.id,
-        a.title,
-        a.status,
-        a.created_at,
-        u.username AS candidate_name,
-        c.name     AS course_name
-    FROM applications a
-    INNER JOIN users   u ON a.user_id   = u.id
-    INNER JOIN courses c ON a.course_id = c.id
-    ORDER BY a.id DESC
-    LIMIT 5
-")->fetchAll(PDO::FETCH_ASSOC);
+$totalApplications = count($applications);
+$totalCandidates   = count(array_filter(
+        $users,
+        static fn (array $user): bool => in_array($user['role'] ?? '', ['candidate', 'ee'], true)
+));
+$totalCourses      = count($courses);
+$totalPeriods      = count($periods);
 
-$statusLabels     = array_map(fn($row) => getStatusLabel($row['status']),    $statusStats);
-$statusTotals     = array_map(fn($row) => (int) $row['total'],               $statusStats);
+$statusStatsMap     = [];
+$courseStatsMap     = [];
+$departmentStatsMap = [];
+$periodStatsMap     = [];
 
-$courseLabels     = array_map(fn($row) => $row['course_name'],               $courseStats);
-$courseTotals     = array_map(fn($row) => (int) $row['total'],               $courseStats);
+foreach ($applications as $application) {
+    $status = (string) ($application['status'] ?? 'unknown');
+    incrementReportStat($statusStatsMap, $status, getStatusLabel($status));
 
-$departmentLabels = array_map(fn($row) => $row['department_name'],           $departmentStats);
-$departmentTotals = array_map(fn($row) => (int) $row['total'],               $departmentStats);
+    $courseName = (string) ($application['course_name'] ?? 'Unknown Course');
+    incrementReportStat($courseStatsMap, $courseName);
 
-$periodLabels     = array_map(fn($row) => $row['period_title'],              $periodStats);
-$periodTotals     = array_map(fn($row) => (int) $row['total'],               $periodStats);
+    $departmentName = (string) ($application['department_name'] ?? 'Unknown Department');
+    incrementReportStat($departmentStatsMap, $departmentName);
+
+    $periodTitle = (string) ($application['period_title'] ?? 'Unknown Period');
+    incrementReportStat($periodStatsMap, $periodTitle);
+}
+
+$statusStats     = sortReportStats($statusStatsMap);
+$courseStats     = sortReportStats($courseStatsMap);
+$departmentStats = sortReportStats($departmentStatsMap);
+$periodStats     = sortReportStats($periodStatsMap);
+
+$recentApplications = $applications;
+usort($recentApplications, static fn (array $a, array $b): int => (int) ($b['id'] ?? 0) <=> (int) ($a['id'] ?? 0));
+$recentApplications = array_slice($recentApplications, 0, 5);
+
+$statusLabels     = array_map(static fn (array $row): string => (string) $row['label'], $statusStats);
+$statusTotals     = array_map(static fn (array $row): int => (int) $row['total'], $statusStats);
+
+$courseLabels     = array_map(static fn (array $row): string => (string) $row['label'], $courseStats);
+$courseTotals     = array_map(static fn (array $row): int => (int) $row['total'], $courseStats);
+
+$departmentLabels = array_map(static fn (array $row): string => (string) $row['label'], $departmentStats);
+$departmentTotals = array_map(static fn (array $row): int => (int) $row['total'], $departmentStats);
+
+$periodLabels     = array_map(static fn (array $row): string => (string) $row['label'], $periodStats);
+$periodTotals     = array_map(static fn (array $row): int => (int) $row['total'], $periodStats);
 ?>
 
 <section class="page-card list-card">
@@ -138,9 +154,9 @@ $periodTotals     = array_map(fn($row) => (int) $row['total'],               $pe
                         <?php foreach ($statusStats as $row): ?>
                             <tr>
                                 <td>
-                                        <span class="status-pill <?= getStatusCssClass($row['status']); ?>">
-                                            <?= htmlspecialchars(getStatusLabel($row['status'])); ?>
-                                        </span>
+                                    <span class="status-pill <?= getStatusCssClass((string) $row['key']); ?>">
+                                        <?= htmlspecialchars((string) $row['label']); ?>
+                                    </span>
                                 </td>
                                 <td><?= (int) $row['total']; ?></td>
                             </tr>
@@ -170,13 +186,13 @@ $periodTotals     = array_map(fn($row) => (int) $row['total'],               $pe
                     <?php else: ?>
                         <?php foreach ($recentApplications as $application): ?>
                             <tr>
-                                <td><?= htmlspecialchars($application['title']); ?></td>
-                                <td><?= htmlspecialchars($application['candidate_name']); ?></td>
-                                <td><?= htmlspecialchars($application['course_name']); ?></td>
+                                <td><?= htmlspecialchars((string) ($application['title'] ?? 'Untitled Application')); ?></td>
+                                <td><?= htmlspecialchars((string) ($application['candidate_name'] ?? 'Unknown Candidate')); ?></td>
+                                <td><?= htmlspecialchars((string) ($application['course_name'] ?? 'Unknown Course')); ?></td>
                                 <td>
-                                        <span class="status-pill <?= getStatusCssClass($application['status']); ?>">
-                                            <?= htmlspecialchars(getStatusLabel($application['status'])); ?>
-                                        </span>
+                                    <span class="status-pill <?= getStatusCssClass((string) ($application['status'] ?? '')); ?>">
+                                        <?= htmlspecialchars(getStatusLabel((string) ($application['status'] ?? ''))); ?>
+                                    </span>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

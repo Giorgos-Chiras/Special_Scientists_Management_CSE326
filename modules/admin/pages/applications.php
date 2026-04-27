@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
 require_once __DIR__ . '/../../../utils/status_utils.php';
+require_once __DIR__ . '/../../../includes/crud/applications_crud.php';
+require_once __DIR__ . '/../../../includes/crud/courses_crud.php';
+require_once __DIR__ . '/../../../includes/crud/recruitment_periods_crud.php';
+require_once __DIR__ . '/../../../includes/crud/users_crud.php';
+require_once __DIR__ . '/../../../utils/time_utils.php';
+
 
 $errors          = [];
 $action          = $_GET['action'] ?? 'list';
@@ -9,122 +15,121 @@ $search          = trim($_GET['search'] ?? '');
 
 $statuses = getApplicationStatuses();
 
+function setApplicationFlash(string $type, string $title, string $text): void
+{
+    $_SESSION['flash'] = [
+            'type'  => $type,
+            'title' => $title,
+            'text'  => $text,
+    ];
+}
+
+function redirectToApplications(): void
+{
+    header('Location: admin.php?page=applications');
+    exit;
+}
+
+function validateApplicationForm(
+        int $userId,
+        int $courseId,
+        int $periodId,
+        string $title,
+        string $status,
+        array $statuses
+): array {
+    $errors = [];
+
+    if ($userId <= 0) $errors[] = 'Candidate is required.';
+    if ($courseId <= 0) $errors[] = 'Course is required.';
+    if ($periodId <= 0) $errors[] = 'Recruitment period is required.';
+    if ($title === '') $errors[] = 'Application title is required.';
+    if (!array_key_exists($status, $statuses)) $errors[] = 'Invalid status selected.';
+
+    return $errors;
+}
+
+function applicationMatchesSearch(array $application, string $search): bool
+{
+    if ($search === '') return true;
+
+    $needle = mb_strtolower($search);
+    $fields = [
+            'title', 'status', 'candidate_name', 'candidate_email', 'course_name',
+            'course_code', 'department_name', 'faculty_name', 'period_title'
+    ];
+
+    foreach ($fields as $field) {
+        if (isset($application[$field]) && mb_strpos(mb_strtolower((string) $application[$field]), $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_application'])) {
-    $userId      = (int) ($_POST['user_id']      ?? 0);
-    $courseId    = (int) ($_POST['course_id']    ?? 0);
-    $periodId    = (int) ($_POST['period_id']    ?? 0);
-    $title       = trim($_POST['title']          ?? '');
-    $status      = $_POST['status']              ?? 'draft';
-    $coverLetter = trim($_POST['cover_letter']   ?? '');
+    $userId         = (int) ($_POST['user_id'] ?? 0);
+    $courseId       = (int) ($_POST['course_id'] ?? 0);
+    $periodId       = (int) ($_POST['period_id'] ?? 0);
+    $title          = trim($_POST['title'] ?? '');
+    $status         = $_POST['status'] ?? 'draft';
+    $coverLetter    = trim($_POST['cover_letter'] ?? '');
     $qualifications = trim($_POST['qualifications'] ?? '');
 
-    if ($userId   <= 0)                          $errors[] = 'Candidate is required.';
-    if ($courseId <= 0)                          $errors[] = 'Course is required.';
-    if ($periodId <= 0)                          $errors[] = 'Recruitment period is required.';
-    if ($title    === '')                        $errors[] = 'Application title is required.';
-    if (!array_key_exists($status, $statuses))   $errors[] = 'Invalid status selected.';
+    $errors = validateApplicationForm($userId, $courseId, $periodId, $title, $status, $statuses);
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare("
-            INSERT INTO applications (
-                user_id, course_id, period_id, title, status, cover_letter, qualifications
-            ) VALUES (
-                :user_id, :course_id, :period_id, :title, :status, :cover_letter, :qualifications
-            )
-        ");
-
-        $stmt->execute([
-                ':user_id'        => $userId,
-                ':course_id'      => $courseId,
-                ':period_id'      => $periodId,
-                ':title'          => $title,
-                ':status'         => $status,
-                ':cover_letter'   => $coverLetter,
-                ':qualifications' => $qualifications,
-        ]);
-
-        $_SESSION['flash'] = [
-                'type'  => 'success',
-                'title' => 'Application created',
-                'text'  => 'The application was created successfully.',
-        ];
-
-        header('Location: admin.php?page=applications');
-        exit;
+        createApplication($pdo, $userId, $courseId, $periodId, $title, $status, $coverLetter, $qualifications);
+        setApplicationFlash('success', 'Application created', 'The application was created successfully.');
+        redirectToApplications();
     }
 
     $action = 'create';
 }
 
 if ($action === 'edit' && isset($_GET['id'])) {
-    $id   = (int) $_GET['id'];
-    $stmt = $pdo->prepare("SELECT * FROM applications WHERE id = :id LIMIT 1");
-    $stmt->execute([':id' => $id]);
-    $editApplication = $stmt->fetch(PDO::FETCH_ASSOC);
+    $editApplication = getApplicationById($pdo, (int) $_GET['id']);
 
     if (!$editApplication) {
-        $_SESSION['flash'] = [
-                'type'  => 'error',
-                'title' => 'Application not found',
-                'text'  => 'The selected application could not be found.',
-        ];
-
-        header('Location: admin.php?page=applications');
-        exit;
+        setApplicationFlash('error', 'Application not found', 'The selected application could not be found.');
+        redirectToApplications();
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_application'])) {
-    $id          = (int) ($_POST['id']           ?? 0);
-    $userId      = (int) ($_POST['user_id']      ?? 0);
-    $courseId    = (int) ($_POST['course_id']    ?? 0);
-    $periodId    = (int) ($_POST['period_id']    ?? 0);
-    $title       = trim($_POST['title']          ?? '');
-    $status      = $_POST['status']              ?? 'draft';
-    $coverLetter = trim($_POST['cover_letter']   ?? '');
+    $id             = (int) ($_POST['id'] ?? 0);
+    $userId         = (int) ($_POST['user_id'] ?? 0);
+    $courseId       = (int) ($_POST['course_id'] ?? 0);
+    $periodId       = (int) ($_POST['period_id'] ?? 0);
+    $title          = trim($_POST['title'] ?? '');
+    $status         = $_POST['status'] ?? 'draft';
+    $coverLetter    = trim($_POST['cover_letter'] ?? '');
     $qualifications = trim($_POST['qualifications'] ?? '');
 
-    if ($userId   <= 0)                          $errors[] = 'Candidate is required.';
-    if ($courseId <= 0)                          $errors[] = 'Course is required.';
-    if ($periodId <= 0)                          $errors[] = 'Recruitment period is required.';
-    if ($title    === '')                        $errors[] = 'Application title is required.';
-    if (!array_key_exists($status, $statuses))   $errors[] = 'Invalid status selected.';
+    $errors = validateApplicationForm($userId, $courseId, $periodId, $title, $status, $statuses);
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare("
-            UPDATE applications
-            SET user_id        = :user_id,
-                course_id      = :course_id,
-                period_id      = :period_id,
-                title          = :title,
-                status         = :status,
-                cover_letter   = :cover_letter,
-                qualifications = :qualifications
-            WHERE id = :id
-        ");
+        $existingApplication = getApplicationById($pdo, $id);
 
-        $stmt->execute([
-                ':user_id'        => $userId,
-                ':course_id'      => $courseId,
-                ':period_id'      => $periodId,
-                ':title'          => $title,
-                ':status'         => $status,
-                ':cover_letter'   => $coverLetter,
-                ':qualifications' => $qualifications,
-                ':id'             => $id,
-        ]);
-
-        $_SESSION['flash'] = [
-                'type'  => 'success',
-                'title' => 'Application updated',
-                'text'  => 'The application was updated successfully.',
-        ];
-
-        header('Location: admin.php?page=applications');
-        exit;
+        updateApplication(
+                $pdo,
+                $id,
+                $courseId,
+                $periodId,
+                $title,
+                $status,
+                $coverLetter,
+                $qualifications,
+                $existingApplication["cv_file_path"] ?? null,
+                $existingApplication["cv_original_name"] ?? null,
+                $userId
+        );
+        setApplicationFlash('success', 'Application updated', 'The application was updated successfully.');
+        redirectToApplications();
     }
 
-    $action          = 'edit';
+    $action = 'edit';
     $editApplication = [
             'id'             => $id,
             'user_id'        => $userId,
@@ -138,142 +143,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_application'])
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $id     = (int) ($_POST['id']     ?? 0);
-    $status = $_POST['status']        ?? '';
+    $id     = (int) ($_POST['id'] ?? 0);
+    $status = $_POST['status'] ?? '';
 
     if ($id > 0 && array_key_exists($status, $statuses)) {
-        $stmt = $pdo->prepare("UPDATE applications SET status = :status WHERE id = :id");
-        $stmt->execute([':status' => $status, ':id' => $id]);
-
-        $_SESSION['flash'] = [
-                'type'  => 'success',
-                'title' => 'Status updated',
-                'text'  => 'Application status was updated successfully.',
-        ];
+        updateApplicationStatus($pdo, $id, $status);
+        setApplicationFlash('success', 'Status updated', 'Application status was updated successfully.');
     }
 
-    header('Location: admin.php?page=applications');
-    exit;
+    redirectToApplications();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_employee'])) {
     $id = (int) ($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("SELECT user_id FROM applications WHERE id = :id LIMIT 1");
-        $stmt->execute([':id' => $id]);
-        $application = $stmt->fetch(PDO::FETCH_ASSOC);
+        $application = getApplicationById($pdo, $id);
 
         if ($application) {
-            $pdo->beginTransaction();
+            $user = getUserById($pdo, (int) $application['user_id']);
 
-            $pdo->prepare("UPDATE applications SET status = 'approved' WHERE id = :id")
-                    ->execute([':id' => $id]);
+            if ($user) {
+                $pdo->beginTransaction();
+                updateApplicationStatus($pdo, $id, 'approved');
+                updateUser($pdo, (int) $user['id'], $user['username'], $user['email'], 'ee', (int) $user['is_active']);
+                $pdo->commit();
 
-            $pdo->prepare("UPDATE users SET role = 'ee' WHERE id = :user_id")
-                    ->execute([':user_id' => (int) $application['user_id']]);
-
-            $pdo->commit();
-
-            $_SESSION['flash'] = [
-                    'type'  => 'success',
-                    'title' => 'Employee assigned',
-                    'text'  => 'Candidate was approved and assigned as EE.',
-            ];
+                setApplicationFlash('success', 'Employee assigned', 'Candidate was approved and assigned as EE.');
+            }
         }
     }
 
-    header('Location: admin.php?page=applications');
-    exit;
+    redirectToApplications();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_application'])) {
     $id = (int) ($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $pdo->prepare("DELETE FROM applications WHERE id = :id")
-                ->execute([':id' => $id]);
-
-        $_SESSION['flash'] = [
-                'type'  => 'success',
-                'title' => 'Application deleted',
-                'text'  => 'Application was deleted successfully.',
-        ];
+        deleteApplication($pdo, $id);
+        setApplicationFlash('success', 'Application deleted', 'Application was deleted successfully.');
     }
 
-    header('Location: admin.php?page=applications');
-    exit;
+    redirectToApplications();
 }
 
-$candidates = $pdo->query("
-    SELECT id, username, email, role
-    FROM users
-    WHERE role IN ('candidate', 'ee')
-    ORDER BY username ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+$candidates = array_values(array_filter(
+        getAllUsers($pdo),
+        static fn (array $user): bool => in_array($user['role'], ['candidate', 'ee'], true)
+));
 
-$courses = $pdo->query("
-    SELECT c.id, c.name, c.code, d.name AS department_name, f.name AS faculty_name
-    FROM courses c
-    INNER JOIN departments d ON c.department_id = d.id
-    INNER JOIN faculties f ON d.faculty_id = f.id
-    ORDER BY f.name ASC, d.name ASC, c.name ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+usort($candidates, static fn (array $a, array $b): int => strcasecmp($a['username'], $b['username']));
 
-$periods = $pdo->query("
-    SELECT id, title, start_date, end_date, is_active
-    FROM recruitment_periods
-    ORDER BY is_active DESC, id DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+$courses = getAllCourses($pdo);
+$periods = getAllRecruitmentPeriods($pdo);
 
-$sql = "
-    SELECT
-        a.id,
-        a.title,
-        a.status,
-        a.cover_letter,
-        a.qualifications,
-        a.cv_file_path,
-        a.cv_original_name,
-        a.created_at,
-        a.updated_at,
-        u.username  AS candidate_name,
-        u.email     AS candidate_email,
-        c.name      AS course_name,
-        c.code      AS course_code,
-        d.name      AS department_name,
-        f.name      AS faculty_name,
-        rp.title    AS period_title
-    FROM applications a
-    INNER JOIN users              u  ON a.user_id    = u.id
-    INNER JOIN courses            c  ON a.course_id  = c.id
-    INNER JOIN departments        d  ON c.department_id = d.id
-    INNER JOIN faculties          f  ON d.faculty_id = f.id
-    INNER JOIN recruitment_periods rp ON a.period_id  = rp.id
-";
+usort(
+        $periods,
+        static fn (array $a, array $b): int => ((int) $b['is_active'] <=> (int) $a['is_active']) ?: ((int) $b['id'] <=> (int) $a['id'])
+);
 
-$params = [];
-
-if ($search !== '') {
-    $sql .= "
-        WHERE a.title   LIKE :search
-           OR a.status  LIKE :search
-           OR u.username LIKE :search
-           OR u.email   LIKE :search
-           OR c.name    LIKE :search
-           OR c.code    LIKE :search
-           OR d.name    LIKE :search
-           OR f.name    LIKE :search
-           OR rp.title  LIKE :search
-    ";
-    $params[':search'] = '%' . $search . '%';
-}
-
-$sql .= " ORDER BY a.id DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$applications = array_values(array_filter(
+        getAllApplications($pdo),
+        static fn (array $application): bool => applicationMatchesSearch($application, $search)
+));
 ?>
 
 <section class="page-card list-card">
@@ -454,7 +387,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <div>
                                 <span>Period</span>
                                 <strong><?= htmlspecialchars($application['period_title']); ?></strong>
-                                <small><?= htmlspecialchars($application['updated_at'] ?? $application['created_at']); ?></small>
+                                <small><?= htmlspecialchars(formatFullDateTime($application['updated_at']) ?? $application['created_at']); ?></small>
                             </div>
                         </div>
 
@@ -478,7 +411,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </form>
 
                         <div class="application-admin-actions">
-                            <a href="admin.php?page=application_view&id=<?= (int) $application['id']; ?>" class="btn btn-primary btn-sm-custom">View</a>
+                            <a href="admin.php?page=admin_application_view&id=<?= (int) $application['id']; ?>" class="btn btn-primary btn-sm-custom">View</a>
 
                             <a href="admin.php?page=applications&action=edit&id=<?= (int) $application['id']; ?>" class="btn btn-secondary btn-sm-custom">Edit</a>
 

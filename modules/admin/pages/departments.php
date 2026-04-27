@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../includes/crud/departments_crud.php';
+require_once __DIR__ . '/../../../includes/crud/faculties_crud.php';
 
 $errors = [];
 $action = $_GET['action'] ?? 'list';
@@ -18,40 +20,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_department']))
         $errors[] = 'Department name is required.';
     }
 
+    if (empty($errors) && departmentExists($pdo, $facultyId, $name)) {
+        $errors[] = 'This department already exists under the selected faculty.';
+    }
+
     if (empty($errors)) {
-        $checkStmt = $pdo->prepare("SELECT id FROM departments WHERE faculty_id = :faculty_id AND name = :name LIMIT 1");
-        $checkStmt->execute([
-                ':faculty_id' => $facultyId,
-                ':name' => $name
-        ]);
+        createDepartment($pdo, $facultyId, $name);
 
-        if ($checkStmt->fetch()) {
-            $errors[] = 'This department already exists under the selected faculty.';
-        } else {
-            $stmt = $pdo->prepare("INSERT INTO departments (faculty_id, name) VALUES (:faculty_id, :name)");
-            $stmt->execute([
-                    ':faculty_id' => $facultyId,
-                    ':name' => $name
-            ]);
+        $_SESSION['flash'] = [
+                'type' => 'success',
+                'title' => 'Department created',
+                'text' => 'The department was created successfully.'
+        ];
 
-            $_SESSION['flash'] = [
-                    'type' => 'success',
-                    'title' => 'Department created',
-                    'text' => 'The department was created successfully.'
-            ];
-
-            header('Location: admin.php?page=departments');
-            exit;
-        }
+        header('Location: admin.php?page=departments');
+        exit;
     }
 }
 
 if ($action === 'edit' && isset($_GET['id'])) {
     $id = (int) $_GET['id'];
-
-    $stmt = $pdo->prepare("SELECT id, faculty_id, name FROM departments WHERE id = :id LIMIT 1");
-    $stmt->execute([':id' => $id]);
-    $editDepartment = $stmt->fetch(PDO::FETCH_ASSOC);
+    $editDepartment = getDepartmentById($pdo, $id);
 
     if (!$editDepartment) {
         $_SESSION['flash'] = [
@@ -78,38 +67,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_department']))
         $errors[] = 'Department name is required.';
     }
 
+    if (empty($errors) && departmentExists($pdo, $facultyId, $name, $id)) {
+        $errors[] = 'Another department already uses that name under the selected faculty.';
+    }
+
     if (empty($errors)) {
-        $checkStmt = $pdo->prepare("
-            SELECT id
-            FROM departments
-            WHERE faculty_id = :faculty_id AND name = :name AND id != :id
-            LIMIT 1
-        ");
-        $checkStmt->execute([
-                ':faculty_id' => $facultyId,
-                ':name' => $name,
-                ':id' => $id
-        ]);
+        updateDepartment($pdo, $id, $facultyId, $name);
 
-        if ($checkStmt->fetch()) {
-            $errors[] = 'Another department already uses that name under the selected faculty.';
-        } else {
-            $stmt = $pdo->prepare("UPDATE departments SET faculty_id = :faculty_id, name = :name WHERE id = :id");
-            $stmt->execute([
-                    ':faculty_id' => $facultyId,
-                    ':name' => $name,
-                    ':id' => $id
-            ]);
+        $_SESSION['flash'] = [
+                'type' => 'success',
+                'title' => 'Department updated',
+                'text' => 'The department was updated successfully.'
+        ];
 
-            $_SESSION['flash'] = [
-                    'type' => 'success',
-                    'title' => 'Department updated',
-                    'text' => 'The department was updated successfully.'
-            ];
-
-            header('Location: admin.php?page=departments');
-            exit;
-        }
+        header('Location: admin.php?page=departments');
+        exit;
     }
 
     $action = 'edit';
@@ -124,8 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_department']))
     $id = (int) ($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("DELETE FROM departments WHERE id = :id");
-        $stmt->execute([':id' => $id]);
+        deleteDepartment($pdo, $id);
 
         $_SESSION['flash'] = [
                 'type' => 'success',
@@ -138,26 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_department']))
     }
 }
 
-$facultyStmt = $pdo->query("SELECT id, name FROM faculties ORDER BY name ASC");
-$faculties = $facultyStmt->fetchAll(PDO::FETCH_ASSOC);
-
-$sql = "
-    SELECT d.id, d.name, f.name AS faculty_name
-    FROM departments d
-    INNER JOIN faculties f ON d.faculty_id = f.id
-";
-$params = [];
-
-if ($search !== '') {
-    $sql .= " WHERE d.name LIKE :search OR f.name LIKE :search";
-    $params[':search'] = '%' . $search . '%';
-}
-
-$sql .= " ORDER BY d.id DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$departments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$faculties = getAllFaculties($pdo);
+$departments = searchDepartments($pdo, $search);
 ?>
 
 <section class="page-card list-card">

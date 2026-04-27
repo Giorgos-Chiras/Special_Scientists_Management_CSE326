@@ -7,14 +7,12 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/crud/users_crud.php';
 
 $errors = [];
-
 $userId = (int) $_SESSION['user_id'];
 
-$stmt = $pdo->prepare("SELECT id, username, email, password_hash FROM users WHERE id = :id LIMIT 1");
-$stmt->execute([':id' => $userId]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$user = getUserAccountById($pdo, $userId);
 
 if (!$user) {
     $_SESSION = [];
@@ -42,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
     }
 
     if ($newPassword !== '' || $confirmNewPassword !== '') {
-
         if ($currentPassword === '') {
             $errors[] = 'Current password is required to change password.';
         } elseif (!password_verify($currentPassword, $user['password_hash'])) {
@@ -58,48 +55,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
         }
     }
 
-    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE (username = :username OR email = :email) AND id != :id LIMIT 1");
-    $checkStmt->execute([
-            ':username' => $username,
-            ':email' => $email,
-            ':id' => $userId
-    ]);
-
-    if ($checkStmt->fetch()) {
+    if (userExistsByUsernameOrEmail($pdo, $username, $email, $userId)) {
         $errors[] = 'Another account already uses that name or email.';
     }
 
     if (empty($errors)) {
         if ($newPassword !== '') {
             $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-
-            $updateStmt = $pdo->prepare("
-                UPDATE users
-                SET username = :username,
-                    email = :email,
-                    password_hash = :password_hash
-                WHERE id = :id
-            ");
-
-            $updateStmt->execute([
-                    ':username' => $username,
-                    ':email' => $email,
-                    ':password_hash' => $newPasswordHash,
-                    ':id' => $userId
-            ]);
+            updateUserProfileWithPassword($pdo, $userId, $username, $email, $newPasswordHash);
         } else {
-            $updateStmt = $pdo->prepare("
-                UPDATE users
-                SET username = :username,
-                    email = :email
-                WHERE id = :id
-            ");
-
-            $updateStmt->execute([
-                    ':username' => $username,
-                    ':email' => $email,
-                    ':id' => $userId
-            ]);
+            updateUserProfile($pdo, $userId, $username, $email);
         }
 
         $_SESSION['username'] = $username;
@@ -115,16 +80,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
         exit;
     }
 
-    if (!empty($errors)) {
-        $_SESSION['flash'] = [
-                'type' => 'error',
-                'title' => 'Error',
-                'text' => implode('<br>', $errors)
-        ];
+    $_SESSION['flash'] = [
+            'type' => 'error',
+            'title' => 'Error',
+            'text' => implode('<br>', $errors)
+    ];
 
-        $currentUsername = $username;
-        $currentEmail = $email;
-    }
+    $currentUsername = $username;
+    $currentEmail = $email;
 }
 ?>
     <!DOCTYPE html>
@@ -132,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title></title>
+        <title>Account Settings</title>
         <link rel="stylesheet" href="../assets/css/style.css">
         <link rel="stylesheet" href="../assets/css/admin.css">
         <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= filemtime(__DIR__ . '/../assets/css/dashboard.css'); ?>">
@@ -147,13 +110,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
             <?php require_once __DIR__ . '/../includes/protected_topbar.php'; ?>
 
             <section class="page-card account-card">
-                <div class="account-header">
-                    <h2 class="page-title">Edit</h2>
+                <div class="list-header">
+                    <div>
+                    </div>
                 </div>
 
-                <form method="POST" action="dashboard.php" class="account-form js-validate-form" novalidate>
+                <form method="POST" action="" class="account-form js-validate-form" novalidate>
                     <div class="account-grid">
                         <div class="account-panel">
+                            <h3 class="account-section-title">Profile</h3>
+
                             <div class="account-field">
                                 <label for="username" class="account-label">Name</label>
                                 <input type="text" id="username" name="username" class="account-input" value="<?= htmlspecialchars($currentUsername); ?>" required>
@@ -166,6 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
                         </div>
 
                         <div class="account-panel">
+                            <h3 class="account-section-title">Change Password</h3>
+                            <p class="page-subtitle" style="margin-bottom: 16px;">Leave blank to keep your current password.</p>
+
                             <div class="account-field">
                                 <label for="current_password" class="account-label">Current Password</label>
                                 <input type="password" id="current_password" name="current_password" class="account-input">
@@ -184,7 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account'])) {
                     </div>
 
                     <div class="account-actions">
-                        <button type="submit" name="update_account" class="btn btn-primary">Save</button>
+                        <button type="submit" name="update_account" class="btn btn-primary">Save Changes</button>
+                        <a href="dashboard.php" class="btn btn-secondary">Cancel</a>
                     </div>
                 </form>
             </section>

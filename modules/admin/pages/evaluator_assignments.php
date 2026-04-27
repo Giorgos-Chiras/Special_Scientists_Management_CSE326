@@ -1,12 +1,31 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../includes/crud/applications_crud.php';
+require_once __DIR__ . '/../../../includes/crud/application_evaluators_crud.php';
+require_once __DIR__ . '/../../../includes/crud/users_crud.php';
+require_once __DIR__ . '/../../../utils/time_utils.php';
+
 
 $errors = [];
-$action = $_GET['action'] ?? 'list';
+
+function setEvaluatorAssignmentFlash(string $type, string $title, string $text): void
+{
+    $_SESSION['flash'] = [
+            'type' => $type,
+            'title' => $title,
+            'text' => $text,
+    ];
+}
+
+function redirectToEvaluatorAssignments(): void
+{
+    header('Location: admin.php?page=evaluator_assignments');
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment'])) {
-    $applicationId = (int) ($_POST['application_id'] ?? 0);
-    $evaluatorId = (int) ($_POST['evaluator_id'] ?? 0);
+    $applicationId = (int)($_POST['application_id'] ?? 0);
+    $evaluatorId = (int)($_POST['evaluator_id'] ?? 0);
 
     if ($applicationId <= 0) {
         $errors[] = 'Application is required.';
@@ -17,89 +36,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment']))
     }
 
     if (empty($errors)) {
-        $checkStmt = $pdo->prepare("
-            SELECT id
-            FROM application_evaluators
-            WHERE application_id = :application_id AND evaluator_id = :evaluator_id
-            LIMIT 1
-        ");
-        $checkStmt->execute([
-                ':application_id' => $applicationId,
-                ':evaluator_id' => $evaluatorId
-        ]);
-
-        if ($checkStmt->fetch()) {
+        if (applicationEvaluatorExists($pdo, $applicationId, $evaluatorId)) {
             $errors[] = 'This evaluator is already assigned to that application.';
         } else {
-            $stmt = $pdo->prepare("
-                INSERT INTO application_evaluators (application_id, evaluator_id)
-                VALUES (:application_id, :evaluator_id)
-            ");
-            $stmt->execute([
-                    ':application_id' => $applicationId,
-                    ':evaluator_id' => $evaluatorId
-            ]);
-
-            $_SESSION['flash'] = [
-                    'type' => 'success',
-                    'title' => 'Assignment created',
-                    'text' => 'The evaluator was assigned successfully.'
-            ];
-
-            header('Location: admin.php?page=evaluator_assignments');
-            exit;
+            assignEvaluatorToApplication($pdo, $applicationId, $evaluatorId);
+            setEvaluatorAssignmentFlash('success', 'Assignment created', 'The evaluator was assigned successfully.');
+            redirectToEvaluatorAssignments();
         }
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_assignment'])) {
-    $id = (int) ($_POST['id'] ?? 0);
+    $id = (int)($_POST['id'] ?? 0);
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("DELETE FROM application_evaluators WHERE id = :id");
-        $stmt->execute([':id' => $id]);
-
-        $_SESSION['flash'] = [
-                'type' => 'success',
-                'title' => 'Assignment removed',
-                'text' => 'The evaluator assignment was removed successfully.'
-        ];
-
-        header('Location: admin.php?page=evaluator_assignments');
-        exit;
+        deleteApplicationEvaluator($pdo, $id);
+        setEvaluatorAssignmentFlash('success', 'Assignment removed', 'The evaluator assignment was removed successfully.');
     }
+
+    redirectToEvaluatorAssignments();
 }
 
-$appStmt = $pdo->query("
-    SELECT a.id, a.title, u.username AS candidate_name
-    FROM applications a
-    INNER JOIN users u ON a.user_id = u.id
-    ORDER BY a.id DESC
-");
-$applications = $appStmt->fetchAll(PDO::FETCH_ASSOC);
+$applications = getAllApplications($pdo);
+$applicationById = [];
+foreach ($applications as $application) {
+    $applicationById[(int)$application['id']] = $application;
+}
 
-$evaluatorStmt = $pdo->query("
-    SELECT id, username, email
-    FROM users
-    WHERE role = 'evaluator'
-    ORDER BY username ASC
-");
-$evaluators = $evaluatorStmt->fetchAll(PDO::FETCH_ASSOC);
+$evaluators = array_values(array_filter(
+        getAllUsers($pdo),
+        static fn(array $user): bool => ($user['role'] ?? '') === 'evaluator'
+));
 
-$stmt = $pdo->query("
-    SELECT
-        ae.id,
-        a.title AS application_title,
-        u.username AS candidate_name,
-        e.username AS evaluator_name,
-        ae.assigned_at
-    FROM application_evaluators ae
-    INNER JOIN applications a ON ae.application_id = a.id
-    INNER JOIN users u ON a.user_id = u.id
-    INNER JOIN users e ON ae.evaluator_id = e.id
-    ORDER BY ae.id DESC
-");
-$assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+usort($evaluators, static fn(array $a, array $b): int => strcasecmp($a['username'], $b['username']));
+
+$assignments = getAllApplicationEvaluators($pdo);
 ?>
 
 <section class="page-card list-card">
@@ -125,13 +96,14 @@ $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php endif; ?>
 
     <section class="search-card">
-        <form method="POST" action="admin.php?page=evaluator_assignments" class="admin-form js-validate-form" novalidate>
+        <form method="POST" action="admin.php?page=evaluator_assignments" class="admin-form js-validate-form"
+              novalidate>
             <div class="form-group">
                 <label for="application_id">Application</label>
                 <select id="application_id" name="application_id" class="admin-select" required>
                     <option value="">Select application</option>
                     <?php foreach ($applications as $application): ?>
-                        <option value="<?= (int) $application['id']; ?>">
+                        <option value="<?= (int)$application['id']; ?>">
                             <?= htmlspecialchars('#' . $application['id'] . ' - ' . $application['title'] . ' (' . $application['candidate_name'] . ')'); ?>
                         </option>
                     <?php endforeach; ?>
@@ -143,7 +115,7 @@ $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <select id="evaluator_id" name="evaluator_id" class="admin-select" required>
                     <option value="">Select evaluator</option>
                     <?php foreach ($evaluators as $evaluator): ?>
-                        <option value="<?= (int) $evaluator['id']; ?>">
+                        <option value="<?= (int)$evaluator['id']; ?>">
                             <?= htmlspecialchars($evaluator['username'] . ' - ' . $evaluator['email']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -180,18 +152,27 @@ $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </tr>
                 <?php else: ?>
                     <?php foreach ($assignments as $assignment): ?>
+                        <?php $assignedApplication = $applicationById[(int)$assignment['application_id']] ?? []; ?>
                         <tr>
-                            <td><?= (int) $assignment['id']; ?></td>
+                            <td><?= (int)$assignment['id']; ?></td>
                             <td><?= htmlspecialchars($assignment['application_title']); ?></td>
-                            <td><?= htmlspecialchars($assignment['candidate_name']); ?></td>
+                            <td><?= htmlspecialchars($assignedApplication['candidate_name'] ?? 'Unknown candidate'); ?></td>
                             <td><?= htmlspecialchars($assignment['evaluator_name']); ?></td>
-                            <td><?= htmlspecialchars($assignment['assigned_at']); ?></td>
+                            <td><?= htmlspecialchars(formatFullDateTime($assignment['assigned_at'])); ?></td>
                             <td>
                                 <div class="table-actions">
-                                    <form method="POST" action="admin.php?page=evaluator_assignments" class="inline-form">
-                                        <input type="hidden" name="id" value="<?= (int) $assignment['id']; ?>">
+                                    <form method="POST" action="admin.php?page=evaluator_assignments"
+                                          class="inline-form">
+                                        <input type="hidden" name="id" value="<?= (int)$assignment['id']; ?>">
                                         <input type="hidden" name="delete_assignment" value="1">
-                                        <button type="button" class="btn btn-danger btn-sm-custom js-delete-button">Remove</button>
+                                        <button
+                                                type="button"
+                                                class="btn btn-danger btn-sm-custom js-delete-button"
+                                                data-title="Remove assignment?"
+                                                data-text="This will unassign the evaluator from the application.",
+                                        >
+                                            Remove
+                                        </button>
                                     </form>
                                 </div>
                             </td>

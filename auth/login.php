@@ -2,6 +2,7 @@
 session_start();
 
 require_once '../includes/db.php';
+require_once '../includes/crud/users_crud.php';
 
 $error = '';
 $email = '';
@@ -13,9 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($email === '' || $password === '') {
         $error = 'Please enter your email and password.';
     } else {
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
-        $stmt->execute(['email' => $email]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = getUserByEmail($pdo, $email);
 
         if ($user && password_verify($password, $user['password_hash'])) {
             $_SESSION['user_id']  = $user['id'];
@@ -26,21 +25,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 case 'admin':
                     header('Location: ../modules/admin.php');
                     break;
-
                 case 'hr':
                 case 'ee':
                     header('Location: ../modules/evaluation/lms_sync.php');
                     break;
-
-                default: // candidate
+                default:
                     header('Location: ../modules/list.php');
                     break;
             }
-
             exit;
-        } else {
-            $error = 'Wrong email or password.';
         }
+
+        $error = 'Wrong email or password.';
     }
 }
 ?>
@@ -50,85 +46,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign in</title>
-
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
-
-    <style>
-        .auth-logo {
-            text-align: center;
-            margin-bottom: 18px;
-            font-size: 26px;
-            font-weight: 700;
-            color: #0f172a;
-        }
-
-        .auth-logo span {
-            color: #2563eb;
-        }
-
-        .auth-card {
-            max-width: 420px;
-            margin: 0 auto;
-        }
-    </style>
 </head>
 <body>
 
-<div class="auth-page">
-    <div class="auth-wrapper">
+<div class="auth-page modern-auth-page">
+    <div class="auth-split">
 
-        <div class="auth-card">
-
-            <div class="auth-logo">
+        <section class="auth-showcase">
+            <a href="../index.php" class="auth-brand">
                 EE <span>C.U.T.</span>
+            </a>
+            <div class="auth-showcase-content">
+                <h1>Welcome back.</h1>
             </div>
+        </section>
 
-            <h1 class="auth-title">Welcome back</h1>
-            <p class="auth-subtitle">Sign in to your account</p>
+        <section class="auth-form-panel">
+            <div class="auth-card modern-auth-card">
 
-            <?php if (isset($_GET['registered'])): ?>
-                <p class="success">Registration successful. You can now sign in.</p>
-            <?php endif; ?>
-
-            <?php if ($error !== ''): ?>
-                <p class="error"><?= htmlspecialchars($error); ?></p>
-            <?php endif; ?>
-
-            <form method="POST" action="" class="auth-form">
-
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value="<?= htmlspecialchars($email); ?>"
-                            required
-                    >
+                <div class="auth-logo">
+                    EE <span>C.U.T.</span>
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            required
-                    >
-                </div>
+                <h1 class="auth-title">Sign in</h1>
+                <p class="auth-subtitle">Enter your account details to continue.</p>
 
-                <button type="submit" class="btn btn-primary auth-submit">
-                    Sign in
-                </button>
-            </form>
+                <?php if (isset($_GET['registered'])): ?>
+                    <p class="success">Registration successful. You can now sign in.</p>
+                <?php endif; ?>
 
-            <p class="auth-link">
-                Don’t have an account?
-                <a href="register.php">Sign up</a>
-            </p>
+                <?php if ($error !== ''): ?>
+                    <p class="error"><?= htmlspecialchars($error); ?></p>
+                <?php endif; ?>
 
-        </div>
+                <form method="POST" action="" class="auth-form">
+                    <div class="form-group">
+                        <label for="email">Email address</label>
+                        <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value="<?= htmlspecialchars($email); ?>"
+                                placeholder="you@example.com"
+                                required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary auth-submit">
+                        Sign in
+                    </button>
+                </form>
+
+                <p class="auth-link">
+                    Don't have an account?
+                    <a href="register.php">Create one</a>
+                </p>
+
+            </div>
+        </section>
 
     </div>
 </div>

@@ -32,7 +32,7 @@ function evaluationIsActive($file, $currentEvaluationPage, $currentModule = '') 
             <a href="../list.php" class="sidebar-link">
                 Switch to Recruitment
             </a>
-        <?php endif; ?>
+        <?php endif; ?>``
 
         <a href="../../auth/logout.php" class="btn btn-danger sidebar-logout js-confirm-logout">Logout</a>
     </nav>

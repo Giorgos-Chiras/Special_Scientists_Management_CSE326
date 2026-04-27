@@ -1,7 +1,6 @@
 <footer class="app-footer">
     <div class="footer-inner">
 
-        <!-- LEFT -->
         <div class="footer-left">
             <h3><?= htmlspecialchars($settings['system_name'] ?? 'System'); ?></h3>
             <p><?= htmlspecialchars($settings['footer_text'] ?? ''); ?></p>
@@ -23,4 +22,6 @@
         </div>
 
     </div>
+    <script src="../utils/chart_utils.js"></script>
+
 </footer>

@@ -37,3 +37,9 @@ require_once '../includes/admin_sidebar.php';
     </main>
 
 <?php require_once '../includes/admin_footer.php'; ?>
+
+    <main class="admin-content">
+        <?php require_once __DIR__ . '/admin/pages/' . $currentPage . '.php'; ?>
+    </main>
+
+<?php require_once '../includes/admin_footer.php'; ?>

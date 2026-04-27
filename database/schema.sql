@@ -78,3 +78,14 @@ CREATE TABLE system_settings (
                                  setting_key VARCHAR(100) NOT NULL UNIQUE,
                                  setting_value TEXT NULL
 );
+
+CREATE TABLE lms_enrollments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    course_id INT NOT NULL,
+    lms_access TINYINT(1) NOT NULL DEFAULT 0,
+    synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_course (user_id, course_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+);

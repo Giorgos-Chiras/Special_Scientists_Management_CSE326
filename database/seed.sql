@@ -75,3 +75,7 @@ VALUES ('system_name', 'Special Scientists C.U.T.'),
        ('applications_open', '1'),
        ('maintenance_mode', '0'),
        ('footer_text', 'Special Scientists Recruitment System');
+
+INSERT INTO lms_enrollments (user_id, course_id, lms_access)
+VALUES (8, 3, 1);
+        

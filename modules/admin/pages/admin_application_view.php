@@ -4,6 +4,8 @@ require_once __DIR__ . '/../../../includes/crud/applications_crud.php';
 require_once __DIR__ . '/../../../utils/status_utils.php';
 require_once __DIR__ . '/../../../utils/user_utils.php';
 require_once __DIR__ . '/../../../utils/time_utils.php';
+require_once __DIR__ . '/../../../includes/admin_guard.php';
+
 
 $id = (int) ($_GET['id'] ?? 0);
 $application = $id > 0 ? getApplicationById($pdo, $id) : null;

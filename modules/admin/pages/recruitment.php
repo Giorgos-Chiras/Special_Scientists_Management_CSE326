@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/../../../includes/admin_guard.php';
+?>
+
+
 <section class="page-card recruitment-hub-card">
     <div class="placeholder-header">
         <h1 class="page-title">Manage Recruitment</h1>

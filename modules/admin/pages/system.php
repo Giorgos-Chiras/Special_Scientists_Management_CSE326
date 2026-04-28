@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../../includes/db.php';
 require_once __DIR__ . '/../../../includes/crud/system_settings_crud.php';
+require_once __DIR__ . '/../../../includes/admin_guard.php';
+
 
 $errors = [];
 

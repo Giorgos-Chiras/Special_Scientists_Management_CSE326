@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../../../includes/db.php';
 require_once __DIR__ . '/../../../includes/crud/departments_crud.php';
 require_once __DIR__ . '/../../../includes/crud/faculties_crud.php';
+require_once __DIR__ . '/../../../includes/admin_guard.php';
+
 
 $errors = [];
 $action = $_GET['action'] ?? 'list';

@@ -1,14 +1,13 @@
 <?php
 session_start();
 
-//TODO: Add unathorized error page
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/login.php");
+    header("Location: /Special_Scientists_Management_CSE326/auth/login.php");
     exit;
 }
 
 if ($_SESSION['role'] !== 'admin') {
-    header("Location: ../index.php");
+    header("Location: /Special_Scientists_Management_CSE326/index.php");
     exit;
 }

@@ -5,9 +5,9 @@
  */
 $host = 'localhost';
 $dbname = 'special_scientists_project';
-$username = 'root';
-$password = '';
-$port = '3308';
+$username = 'project_user';
+$password = 'PassWord123!';
+$port = '3306';
 
 try {
     $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";

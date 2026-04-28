@@ -5,6 +5,8 @@ require_once __DIR__ . '/../../../includes/crud/applications_crud.php';
 require_once __DIR__ . '/../../../includes/crud/courses_crud.php';
 require_once __DIR__ . '/../../../includes/crud/recruitment_periods_crud.php';
 require_once __DIR__ . '/../../../includes/crud/users_crud.php';
+require_once __DIR__ . '/../../../includes/admin_guard.php';
+
 
 function incrementReportStat(array &$stats, string $key, ?string $label = null): void
 {

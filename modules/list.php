@@ -114,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application']) &
     }
 
     $cvData = uploadCv($errors);
+
     if (empty($errors)) {
         createApplication(
                 $pdo,
@@ -209,6 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_application'])
     }
 
     $cvData = uploadCv($errors, $existingApplication);
+
     if (empty($errors)) {
         updateCandidateApplication(
                 $pdo,
@@ -258,13 +260,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status']) && $
             && in_array($newStatus, $allowedStatuses, true)
             && evaluatorCanAccessApplication($pdo, $applicationId, $userId)
     ) {
-        updateApplicationStatus($pdo, $applicationId, $newStatus);
+        try {
+            $pdo->beginTransaction();
 
-        $_SESSION['flash'] = [
-                'type' => 'success',
-                'title' => 'Status updated',
-                'text' => 'The application status was updated successfully.',
-        ];
+            updateApplicationStatus($pdo, $applicationId, $newStatus);
+
+            if ($newStatus === 'approved') {
+                $stmt = $pdo->prepare("
+                    SELECT user_id, course_id
+                    FROM applications
+                    WHERE id = :id
+                    LIMIT 1
+                ");
+                $stmt->execute([':id' => $applicationId]);
+                $approvedApplication = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($approvedApplication) {
+                    $approvedUserId = (int) $approvedApplication['user_id'];
+                    $approvedCourseId = (int) $approvedApplication['course_id'];
+
+                    $stmt = $pdo->prepare("
+                        UPDATE users
+                        SET role = 'ee'
+                        WHERE id = :user_id
+                          AND role NOT IN ('admin', 'hr')
+                    ");
+                    $stmt->execute([':user_id' => $approvedUserId]);
+
+                    $stmt = $pdo->prepare("
+                        INSERT INTO lms_enrollments (user_id, course_id, lms_access, synced_at)
+                        VALUES (:user_id, :course_id, 1, NOW())
+                        ON DUPLICATE KEY UPDATE
+                            lms_access = 1,
+                            synced_at = NOW()
+                    ");
+                    $stmt->execute([
+                            ':user_id' => $approvedUserId,
+                            ':course_id' => $approvedCourseId
+                    ]);
+                }
+            }
+
+            $pdo->commit();
+
+            $_SESSION['flash'] = [
+                    'type' => 'success',
+                    'title' => 'Status updated',
+                    'text' => $newStatus === 'approved'
+                            ? 'The application was approved. The candidate is now an EE and has LMS access for the course.'
+                            : 'The application status was updated successfully.',
+            ];
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $_SESSION['flash'] = [
+                    'type' => 'error',
+                    'title' => 'Update failed',
+                    'text' => 'The application status could not be updated.',
+            ];
+        }
     }
 
     header('Location: list.php');
@@ -337,7 +393,6 @@ if (empty($qualificationValues)) {
     <link rel="stylesheet" href="../assets/css/list.css?v=<?= filemtime(__DIR__ . '/../assets/css/list.css'); ?>">
     <link rel="stylesheet" href="../assets/css/admin.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= filemtime(__DIR__ . '/../assets/css/dashboard.css'); ?>">
-
 </head>
 <body>
 
@@ -356,7 +411,7 @@ if (empty($qualificationValues)) {
                                 <span class="status-pill status-approved">Active</span>
                                 <div>
                                     <strong><?= htmlspecialchars($activePeriod['title']); ?></strong>
-                                    <small><?= htmlspecialchars($activePeriod['start_date']); ?> – <?= htmlspecialchars($activePeriod['end_date']); ?></small>
+                                    <small><?= htmlspecialchars(formatDate($activePeriod['start_date'])); ?> – <?= htmlspecialchars(formatDate($activePeriod['end_date'])); ?></small>
                                 </div>
                             <?php else: ?>
                                 <span class="status-pill status-rejected">Inactive</span>
@@ -386,9 +441,7 @@ if (empty($qualificationValues)) {
                         </div>
                     <?php endif; ?>
                 <?php else: ?>
-                    <div class="list-header">
-
-                    </div>
+                    <div class="list-header"></div>
                 <?php endif; ?>
 
                 <?php if (!empty($errors)): ?>
@@ -470,7 +523,6 @@ if (empty($qualificationValues)) {
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
-
                             </div>
 
                             <div class="form-group full-width">
@@ -551,8 +603,7 @@ if (empty($qualificationValues)) {
                                         <div>
                                             <span>Period</span>
                                             <strong><?= htmlspecialchars($application['period_title'] ?? 'No period'); ?></strong>
-                                            <small><?= htmlspecialchars(formatFullDateTime($application['updated_at'] ??
-                                                        formatFullDateTime($application['created_at']))); ?></small>
+                                            <small><?= htmlspecialchars(formatFullDateTime($application['updated_at'] ?? $application['created_at'])); ?></small>
                                         </div>
 
                                         <?php if (!$isCandidate): ?>
@@ -654,19 +705,21 @@ if (empty($qualificationValues)) {
             return row;
         }
 
-        document.querySelectorAll('.qualification-row').forEach(row => {
-            row.querySelector('.qualification-add-btn').onclick = () => {
-                builder.appendChild(createRow());
-            };
+        if (builder) {
+            document.querySelectorAll('.qualification-row').forEach(row => {
+                row.querySelector('.qualification-add-btn').onclick = () => {
+                    builder.appendChild(createRow());
+                };
 
-            row.querySelector('.qualification-remove-btn').onclick = () => {
-                if (builder.children.length > 1) {
-                    row.remove();
-                } else {
-                    row.querySelector('input').value = '';
-                }
-            };
-        });
+                row.querySelector('.qualification-remove-btn').onclick = () => {
+                    if (builder.children.length > 1) {
+                        row.remove();
+                    } else {
+                        row.querySelector('input').value = '';
+                    }
+                };
+            });
+        }
     });
 </script>
 

@@ -17,9 +17,8 @@ function evaluationIsActive($file, $currentEvaluationPage, $currentModule = '') 
 <aside class="sidebar">
     <div class="sidebar-top">
         <div class="sidebar-brand">
-            <span>EE</span> <strong>Evaluation</strong>
+            <span>EE</span> <strong>Enrollment</strong>
         </div>
-        <p class="sidebar-text">Enrollment Module</p>
     </div>
 
     <nav class="sidebar-nav">

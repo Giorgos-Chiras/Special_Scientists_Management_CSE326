@@ -78,4 +78,9 @@ VALUES ('system_name', 'Special Scientists C.U.T.'),
 
 INSERT INTO lms_enrollments (user_id, course_id, lms_access)
 VALUES (8, 3, 1);
+
+INSERT INTO course_materials (course_id, title, pdf_path)
+VALUES
+    (3, 'CS101 Syllabus', 'uploads/materials/cs101_syllabus.pdf'),
+    (3, 'Introduction to PHP Slides', 'uploads/materials/php_intro.pdf');
         

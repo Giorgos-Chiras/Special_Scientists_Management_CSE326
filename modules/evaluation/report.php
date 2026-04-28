@@ -83,12 +83,7 @@ $courseRows = $pdo->query("
             <?php require_once __DIR__ . '/../../includes/protected_topbar.php'; ?>
 
             <section class="page-card list-card">
-                <div class="list-header">
-                    <div>
-                        <h1 class="page-title">Enrollment Report</h1>
-                        <p class="page-subtitle">LMS access statistics and Moodle enrollment overview.</p>
-                    </div>
-                </div>
+
 
                 <div class="report-summary-grid">
                     <div class="report-summary-card">

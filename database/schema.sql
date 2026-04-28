@@ -89,3 +89,12 @@ CREATE TABLE lms_enrollments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS course_materials (
+                                                id          INT AUTO_INCREMENT PRIMARY KEY,
+                                                course_id   INT NOT NULL,
+                                                title       VARCHAR(150) NOT NULL,
+    pdf_path    VARCHAR(255) NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+    );

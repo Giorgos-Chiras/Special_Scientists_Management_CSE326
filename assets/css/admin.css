@@ -473,3 +473,21 @@
     }
 }
 
+input[type="file"].admin-input {
+    line-height: 1;
+    padding: 8px;
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+

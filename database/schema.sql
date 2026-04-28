@@ -1,7 +1,8 @@
+DROP DATABASE IF EXISTS special_scientists_project;
+
 CREATE
 DATABASE IF NOT EXISTS special_scientists_project;
-USE
-special_scientists_project;
+USE special_scientists_project;
 
 CREATE TABLE users (
                        id            INT AUTO_INCREMENT PRIMARY KEY,

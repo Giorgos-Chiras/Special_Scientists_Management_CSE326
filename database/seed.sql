@@ -1,5 +1,4 @@
-USE
-special_scientists_project;
+USE special_scientists_project;
 
 -- USERS
 
@@ -50,24 +49,7 @@ VALUES ('Spring 2026 Recruitment', '2026-01-10', '2026-03-31', 0),
        ('Summer 2026 Recruitment', '2026-04-01', '2026-06-30', 1),
        ('Autumn 2026 Recruitment', '2026-09-01', '2026-11-30', 0);
 
-INSERT INTO applications (user_id, course_id, period_id, title, status)
-VALUES (2, 1, 1, 'Application for Calculus I', 'submitted'),
-       (2, 3, 2, 'Application for Introduction to Programming', 'under_review'),
-       (3, 4, 2, 'Application for Data Structures', 'approved'),
-       (3, 6, 1, 'Application for Classical Mechanics', 'rejected'),
-       (4, 5, 2, 'Application for Database Systems', 'draft'),
-       (4, 8, 2, 'Application for Organic Chemistry', 'submitted'),
-       (2, 9, 3, 'Application for Circuit Analysis', 'draft'),
-       (3, 10, 3, 'Application for Thermodynamics', 'draft'),
-       (4, 11, 2, 'Application for Academic Writing', 'under_review');
 
-INSERT INTO application_evaluators (application_id, evaluator_id)
-VALUES (1, 5),
-       (2, 5),
-       (3, 6),
-       (4, 6),
-       (6, 5),
-       (9, 6);
 
 INSERT INTO system_settings (setting_key, setting_value)
 VALUES ('system_name', 'Special Scientists C.U.T.'),
@@ -76,11 +58,3 @@ VALUES ('system_name', 'Special Scientists C.U.T.'),
        ('maintenance_mode', '0'),
        ('footer_text', 'Special Scientists Recruitment System');
 
-INSERT INTO lms_enrollments (user_id, course_id, lms_access)
-VALUES (8, 3, 1);
-
-INSERT INTO course_materials (course_id, title, pdf_path)
-VALUES
-    (3, 'CS101 Syllabus', 'uploads/materials/cs101_syllabus.pdf'),
-    (3, 'Introduction to PHP Slides', 'uploads/materials/php_intro.pdf');
-        
